@@ -1,8 +1,5 @@
-//go:build go1.18
-// +build go1.18
-
 /*
- * Copyright (c) 2022 The GoPlus Authors (goplus.org). All rights reserved.
+ * Copyright (c) 2023 The GoPlus Authors (goplus.org). All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,25 +14,19 @@
  * limitations under the License.
  */
 
-package typeparams
+package xtypes
 
-import "go/ast"
+import (
+	"github.com/goplus/gop/ast"
+)
 
-// IndexListExpr is an alias for ast.IndexListExpr.
-type IndexListExpr = ast.IndexListExpr
-
-// ForFuncType returns n.TypeParams.
-func ForFuncType(n *ast.FuncType) *ast.FieldList {
-	if n == nil {
-		return nil
+// unparen returns e with any enclosing parentheses stripped.
+func unparen(e ast.Expr) ast.Expr {
+	for {
+		p, ok := e.(*ast.ParenExpr)
+		if !ok {
+			return e
+		}
+		e = p.X
 	}
-	return n.TypeParams
-}
-
-// ForTypeSpec returns n.TypeParams.
-func ForTypeSpec(n *ast.TypeSpec) *ast.FieldList {
-	if n == nil {
-		return nil
-	}
-	return n.TypeParams
 }

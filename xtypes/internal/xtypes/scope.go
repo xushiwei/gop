@@ -1,8 +1,5 @@
-//go:build go1.18
-// +build go1.18
-
 /*
- * Copyright (c) 2022 The GoPlus Authors (goplus.org). All rights reserved.
+ * Copyright (c) 2023 The GoPlus Authors (goplus.org). All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,25 +14,22 @@
  * limitations under the License.
  */
 
-package typeparams
+package xtypes
 
-import "go/ast"
+import (
+	"go/types"
+)
 
-// IndexListExpr is an alias for ast.IndexListExpr.
-type IndexListExpr = ast.IndexListExpr
-
-// ForFuncType returns n.TypeParams.
-func ForFuncType(n *ast.FuncType) *ast.FieldList {
-	if n == nil {
-		return nil
-	}
-	return n.TypeParams
+func Scope_elems(s *types.Scope) map[string]types.Object {
+	panic("todo")
 }
 
-// ForTypeSpec returns n.TypeParams.
-func ForTypeSpec(n *ast.TypeSpec) *ast.FieldList {
-	if n == nil {
-		return nil
-	}
-	return n.TypeParams
+func Scope_insert(s *types.Scope, name string, obj types.Object) {
+	panic("todo")
+}
+
+// resolve returns the Object represented by obj, resolving lazy
+// objects as appropriate.
+func Resolve(name string, obj types.Object) types.Object {
+	panic("todo") // see types.resolve
 }

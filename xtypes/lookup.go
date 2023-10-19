@@ -1,8 +1,5 @@
-//go:build go1.18
-// +build go1.18
-
 /*
- * Copyright (c) 2022 The GoPlus Authors (goplus.org). All rights reserved.
+ * Copyright (c) 2023 The GoPlus Authors (goplus.org). All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,25 +14,15 @@
  * limitations under the License.
  */
 
-package typeparams
+package xtypes
 
-import "go/ast"
+import (
+	"go/types"
+)
 
-// IndexListExpr is an alias for ast.IndexListExpr.
-type IndexListExpr = ast.IndexListExpr
-
-// ForFuncType returns n.TypeParams.
-func ForFuncType(n *ast.FuncType) *ast.FieldList {
-	if n == nil {
-		return nil
-	}
-	return n.TypeParams
-}
-
-// ForTypeSpec returns n.TypeParams.
-func ForTypeSpec(n *ast.TypeSpec) *ast.FieldList {
-	if n == nil {
-		return nil
-	}
-	return n.TypeParams
+type instanceLookup struct {
+	// buf is used to avoid allocating the map m in the common case of a small
+	// number of instances.
+	buf [3]*types.Named
+	m   map[*types.Named][]*types.Named
 }
