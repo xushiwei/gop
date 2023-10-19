@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 The GoPlus Authors (goplus.org). All rights reserved.
+ * Copyright (c) 2023 The GoPlus Authors (goplus.org). All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package env
+package xtypes
 
-// The value of variables come form
-// `go build -ldflags '-X "buildDate=xxxxx"`
-var (
-	buildDate string
+import (
+	"github.com/goplus/gop/ast"
 )
 
-// BuildDate returns build date of the `gop` command.
-func BuildDate() string {
-	return buildDate
+// unparen returns e with any enclosing parentheses stripped.
+func unparen(e ast.Expr) ast.Expr {
+	for {
+		p, ok := e.(*ast.ParenExpr)
+		if !ok {
+			return e
+		}
+		e = p.X
+	}
 }

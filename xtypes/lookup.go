@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 The GoPlus Authors (goplus.org). All rights reserved.
+ * Copyright (c) 2023 The GoPlus Authors (goplus.org). All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package env
+package xtypes
 
-// The value of variables come form
-// `go build -ldflags '-X "buildDate=xxxxx"`
-var (
-	buildDate string
+import (
+	"go/types"
 )
 
-// BuildDate returns build date of the `gop` command.
-func BuildDate() string {
-	return buildDate
+type instanceLookup struct {
+	// buf is used to avoid allocating the map m in the common case of a small
+	// number of instances.
+	buf [3]*types.Named
+	m   map[*types.Named][]*types.Named
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 The GoPlus Authors (goplus.org). All rights reserved.
+ * Copyright (c) 2023 The GoPlus Authors (goplus.org). All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-package env
+package xtypes
 
-// The value of variables come form
-// `go build -ldflags '-X "buildDate=xxxxx"`
-var (
-	buildDate string
+import (
+	"go/types"
 )
 
-// BuildDate returns build date of the `gop` command.
-func BuildDate() string {
-	return buildDate
+func Scope_elems(s *types.Scope) map[string]types.Object {
+	panic("todo")
+}
+
+func Scope_insert(s *types.Scope, name string, obj types.Object) {
+	panic("todo")
+}
+
+// resolve returns the Object represented by obj, resolving lazy
+// objects as appropriate.
+func Resolve(name string, obj types.Object) types.Object {
+	panic("todo") // see types.resolve
 }
