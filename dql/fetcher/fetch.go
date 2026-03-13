@@ -41,28 +41,37 @@ func convert(conv reflect.Value, input, source any) any {
 // -----------------------------------------------------------------------------
 
 var (
-	ErrUnknownPageType = errors.New("unknown page type")
+	ErrUnknownFetchType = errors.New("unknown fetch type")
 )
+
+// URL generates a URL from an input by registered converter.
+func URL(fetchType string, input any) (string, error) {
+	fi, ok := convs[fetchType]
+	if !ok {
+		return "", ErrUnknownFetchType
+	}
+	return fi.URL(input), nil
+}
 
 // Do fetches HTML content from an input and converts it to an object by
 // registered converter.
 func Do(fetchType string, input any) (any, error) {
-	page, ok := convs[fetchType]
+	fi, ok := convs[fetchType]
 	if !ok {
-		return nil, ErrUnknownPageType
+		return nil, ErrUnknownFetchType
 	}
-	url := page.URL(input)
-	return convert(page.Conv, input, url), nil
+	url := fi.URL(input)
+	return convert(fi.Conv, input, url), nil
 }
 
 // From reads HTML content from a source and converts it to an object by
 // registered converter. It is used when HTML content is already available.
 func From(fetchType string, input, source any) (any, error) {
-	page, ok := convs[fetchType]
+	fi, ok := convs[fetchType]
 	if !ok {
-		return nil, ErrUnknownPageType
+		return nil, ErrUnknownFetchType
 	}
-	return convert(page.Conv, input, source), nil
+	return convert(fi.Conv, input, source), nil
 }
 
 // fetchInfo represents a fetch information, including convert function
