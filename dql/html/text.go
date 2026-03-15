@@ -42,16 +42,18 @@ func isSpace(c byte) bool {
 }
 
 func (p *textPrinter) printCollapsed(v string) {
-loop:
-	n := len(v)
-	i := 0
-	for i < n && isSpace(v[i]) {
-		i++ // skip leading spaces
-	}
-	if i > 0 {
-		p.hasSpace = true
-	}
-	if i < n {
+	for len(v) > 0 {
+		n := len(v)
+		i := 0
+		for i < n && isSpace(v[i]) {
+			i++ // skip leading spaces
+		}
+		if i > 0 {
+			p.hasSpace = true
+		}
+		if i >= n {
+			break
+		}
 		if p.notLineStart && p.hasSpace {
 			p.data = append(p.data, ' ')
 		} else {
@@ -65,7 +67,6 @@ loop:
 		}
 		p.data = append(p.data, v[start:i]...)
 		v = v[i:]
-		goto loop
 	}
 }
 
