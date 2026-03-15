@@ -103,6 +103,7 @@ func (ctx *pkgCtx) newBuiltinDefault(pkg *gogen.Package, conf *gogen.Config) *ty
 		ti.AddMethods(
 			&gogen.BuiltinMethod{Name: "Capitalize", Fn: strx.Ref("Capitalize")},
 		)
+		builtin.Scope().Insert(gogen.NewOverloadFunc(token.NoPos, builtin, "contains", strx.Ref("Contains")))
 	}
 	if stringslice.Types != nil {
 		ti := pkg.BuiltinTI(types.NewSlice(types.Typ[types.String]))
