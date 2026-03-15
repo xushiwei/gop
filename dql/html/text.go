@@ -17,18 +17,12 @@
 package html
 
 import (
-	"strings"
-
 	"github.com/goplus/xgo/dql"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
 
 // -----------------------------------------------------------------------------
-
-const (
-	spaces = " \t\r\n"
-)
 
 // textOf returns text data of all node's children.
 func textOf(node *html.Node) string {
@@ -43,17 +37,36 @@ type textPrinter struct {
 	hasSpace     bool
 }
 
-func (p *textPrinter) printText(v string, hasRightSpace bool) {
-	if v == "" {
-		return
+func isSpace(c byte) bool {
+	return c == ' ' || c == '\t' || c == '\r' || c == '\n'
+}
+
+func (p *textPrinter) printCollapsed(v string) {
+loop:
+	n := len(v)
+	i := 0
+	for i < n && isSpace(v[i]) {
+		i++ // skip leading spaces
 	}
-	if p.notLineStart && p.hasSpace {
-		p.data = append(p.data, ' ')
-	} else {
-		p.notLineStart = true
+	if i > 0 {
+		p.hasSpace = true
 	}
-	p.data = append(p.data, v...)
-	p.hasSpace = hasRightSpace
+	if i < n {
+		if p.notLineStart && p.hasSpace {
+			p.data = append(p.data, ' ')
+		} else {
+			p.notLineStart = true
+		}
+		p.hasSpace = false
+		start := i
+		i++
+		for i < n && !isSpace(v[i]) {
+			i++
+		}
+		p.data = append(p.data, v[start:i]...)
+		v = v[i:]
+		goto loop
+	}
 }
 
 func (p *textPrinter) printNode(node *html.Node) {
@@ -61,7 +74,7 @@ func (p *textPrinter) printNode(node *html.Node) {
 		return
 	}
 	if node.Type == html.TextNode {
-		p.printText(textTrimRight(textTrimLeft(node.Data, &p.hasSpace)))
+		p.printCollapsed(node.Data)
 		return
 	}
 	for child := node.FirstChild; child != nil; child = child.NextSibling {
@@ -73,19 +86,6 @@ func (p *textPrinter) printNode(node *html.Node) {
 		p.data = append(p.data, '\n')
 		p.notLineStart = false
 	}
-}
-
-func textTrimLeft(v string, hasSpace *bool) string {
-	ret := strings.TrimLeft(v, spaces)
-	if len(v) != len(ret) {
-		*hasSpace = true
-	}
-	return ret
-}
-
-func textTrimRight(v string) (string, bool) {
-	ret := strings.TrimRight(v, spaces)
-	return ret, len(v) != len(ret)
 }
 
 // -----------------------------------------------------------------------------
