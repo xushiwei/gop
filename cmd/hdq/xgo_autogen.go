@@ -43,7 +43,7 @@ func (this *App) MainEntry() {
 func (this *App) Main() {
 	_xgo_obj0 := &Cmd_fetch{App: this}
 	_xgo_obj1 := &Cmd_list{App: this}
-	xcmd.Gopt_App_Main(this, _xgo_obj0, _xgo_obj1)
+	xcmd.XGot_App_Main(this, _xgo_obj0, _xgo_obj1)
 }
 //line cmd/hdq/fetch_cmd.gox:24
 func (this *Cmd_fetch) Main(_xgo_arg0 string) {
