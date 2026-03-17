@@ -35,14 +35,17 @@ type noFilter struct{}
 func (f noFilter) Filter(*html.Node) bool { return true }
 
 // textOf returns text data of all node's children.
-func textOf[F NodeFilter](node *html.Node, outer bool) string {
-	var p textPrinter[F]
+func textOf[F NodeFilter](node *html.Node, outer bool, f F) string {
+	p := textPrinter[F]{
+		nodef: f,
+	}
 	p.printNode(node, outer, false)
 	return string(p.data)
 }
 
 type textPrinter[F NodeFilter] struct {
 	data         []byte
+	nodef        F
 	notLineStart bool
 	hasSpace     bool
 }
@@ -101,7 +104,7 @@ func (p *textPrinter[F]) printNode(node *html.Node, outer, verbatim bool) {
 		}
 		return
 	}
-	var f F
+	f := p.nodef
 	verbatim = verbatim || node.DataAtom == atom.Pre
 	for child := node.FirstChild; child != nil; child = child.NextSibling {
 		if f.Filter(child) {
@@ -133,17 +136,26 @@ func (p NodeSet) Text__0() string {
 func (p NodeSet) Text__1() (val string, err error) {
 	node, err := p.First()
 	if err == nil {
-		val = textOf[noFilter](&node.Node, false)
+		val = textOf(&node.Node, false, noFilter{})
 	}
 	return
 }
 
-// TextOf retrieves the text content of the NodeSet with a node filter. It only
+// Text retrieves the text content of the NodeSet with a node filter. It only
 // retrieves from the first node in the NodeSet.
-func TextOf[F NodeFilter](p NodeSet, outer bool) (val string, err error) {
+//
+// The node filter is used to filter the nodes when retrieving text content. If
+// the node filter returns false for a node, the node and its children will be
+// ignored when retrieving text content.
+//
+// The outer parameter specifies whether to include the text content of the
+// outer node itself. If outer is true, the text content of the outer node will
+// be included; otherwise, only the text content of the inner nodes will be
+// included.
+func Text[F NodeFilter](p NodeSet, outer bool, f F) (val string, err error) {
 	node, err := p.First()
 	if err == nil {
-		val = textOf[F](&node.Node, outer)
+		val = textOf(&node.Node, outer, f)
 	}
 	return
 }

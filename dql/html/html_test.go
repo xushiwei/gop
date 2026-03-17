@@ -54,7 +54,7 @@ func TestTextOf(t *testing.T) {
 		if e != nil {
 			t.Fatalf("%s error: %v", c.name, e)
 		}
-		if got := textOf[noFilter](doc, false); got != c.want {
+		if got := textOf(doc, false, noFilter{}); got != c.want {
 			t.Errorf("%s: `%s`, want `%s`", c.name, got, c.want)
 		}
 	}
@@ -119,7 +119,7 @@ func TestTextFilter(t *testing.T) {
 		if e != nil {
 			t.Fatalf("%s error: %v", c.name, e)
 		}
-		if got := textOf[commentRemover](doc, false); got != c.want {
+		if got := textOf(doc, false, commentRemover{}); got != c.want {
 			t.Errorf("%s: `%s`, want `%s`", c.name, got, c.want)
 		}
 	}
