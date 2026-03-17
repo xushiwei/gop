@@ -24,14 +24,22 @@ import (
 
 // -----------------------------------------------------------------------------
 
+type nodeFilter interface {
+	Filter(*html.Node) bool
+}
+
+type noFilter struct{}
+
+func (f noFilter) Filter(*html.Node) bool { return true }
+
 // textOf returns text data of all node's children.
-func textOf(node *html.Node) string {
-	var p textPrinter
-	p.printNode(node)
+func textOf[F nodeFilter](node *html.Node, outer bool) string {
+	var p textPrinter[F]
+	p.printNode(node, outer, false)
 	return string(p.data)
 }
 
-type textPrinter struct {
+type textPrinter[F nodeFilter] struct {
 	data         []byte
 	notLineStart bool
 	hasSpace     bool
@@ -41,7 +49,7 @@ func isSpace(c byte) bool {
 	return c == ' ' || c == '\t' || c == '\r' || c == '\n'
 }
 
-func (p *textPrinter) printCollapsed(v string) {
+func (p *textPrinter[F]) printCollapsed(v string) {
 	for len(v) > 0 {
 		n := len(v)
 		i := 0
@@ -70,22 +78,41 @@ func (p *textPrinter) printCollapsed(v string) {
 	}
 }
 
-func (p *textPrinter) printNode(node *html.Node) {
+func (p *textPrinter[F]) printVerbatim(v string) {
+	p.data = append(p.data, v...)
+	if len(v) > 0 {
+		last := v[len(v)-1]
+		p.notLineStart = last != '\n'
+		p.hasSpace = p.notLineStart && isSpace(last)
+	}
+}
+
+func (p *textPrinter[F]) printNode(node *html.Node, outer, verbatim bool) {
 	if node == nil {
 		return
 	}
 	if node.Type == html.TextNode {
-		p.printCollapsed(node.Data)
+		if verbatim {
+			p.printVerbatim(node.Data)
+		} else {
+			p.printCollapsed(node.Data)
+		}
 		return
 	}
+	var f F
+	verbatim = verbatim || node.DataAtom == atom.Pre
 	for child := node.FirstChild; child != nil; child = child.NextSibling {
-		p.printNode(child)
+		if f.Filter(child) {
+			p.printNode(child, true, verbatim)
+		}
 	}
-	switch node.DataAtom {
-	case atom.P, atom.Div, atom.Br, atom.H1, atom.H2, atom.H3, atom.H4,
-		atom.H5, atom.H6, atom.Li, atom.Blockquote, atom.Pre:
-		p.data = append(p.data, '\n')
-		p.notLineStart = false
+	if outer {
+		switch node.DataAtom {
+		case atom.P, atom.Div, atom.Br, atom.H1, atom.H2, atom.H3, atom.H4,
+			atom.H5, atom.H6, atom.Li, atom.Blockquote, atom.Pre:
+			p.data = append(p.data, '\n')
+			p.notLineStart = false
+		}
 	}
 }
 
@@ -104,7 +131,17 @@ func (p NodeSet) Text__0() string {
 func (p NodeSet) Text__1() (val string, err error) {
 	node, err := p.First()
 	if err == nil {
-		val = textOf(&node.Node)
+		val = textOf[noFilter](&node.Node, false)
+	}
+	return
+}
+
+// TextOf retrieves the text content of the NodeSet with a node filter. It only
+// retrieves from the first node in the NodeSet.
+func TextOf[F nodeFilter](p NodeSet, outer bool) (val string, err error) {
+	node, err := p.First()
+	if err == nil {
+		val = textOf[F](&node.Node, outer)
 	}
 	return
 }
