@@ -24,7 +24,9 @@ import (
 
 // -----------------------------------------------------------------------------
 
-type nodeFilter interface {
+// NodeFilter is the interface for filtering nodes when retrieving text content.
+type NodeFilter interface {
+	// Filter returns true if the node should be included in the text content.
 	Filter(*html.Node) bool
 }
 
@@ -33,13 +35,13 @@ type noFilter struct{}
 func (f noFilter) Filter(*html.Node) bool { return true }
 
 // textOf returns text data of all node's children.
-func textOf[F nodeFilter](node *html.Node, outer bool) string {
+func textOf[F NodeFilter](node *html.Node, outer bool) string {
 	var p textPrinter[F]
 	p.printNode(node, outer, false)
 	return string(p.data)
 }
 
-type textPrinter[F nodeFilter] struct {
+type textPrinter[F NodeFilter] struct {
 	data         []byte
 	notLineStart bool
 	hasSpace     bool
@@ -138,7 +140,7 @@ func (p NodeSet) Text__1() (val string, err error) {
 
 // TextOf retrieves the text content of the NodeSet with a node filter. It only
 // retrieves from the first node in the NodeSet.
-func TextOf[F nodeFilter](p NodeSet, outer bool) (val string, err error) {
+func TextOf[F NodeFilter](p NodeSet, outer bool) (val string, err error) {
 	node, err := p.First()
 	if err == nil {
 		val = textOf[F](&node.Node, outer)
