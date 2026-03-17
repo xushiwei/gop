@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
 
 func TestTextOf(t *testing.T) {
@@ -75,3 +76,51 @@ const codeBody = `<div data-v-9ebd45a1="" class="code-body">
 <span class="hljs-punctuation">}</span>
 <span class="hljs-punctuation">}</span></code></pre>
 </div>`
+
+type commentRemover struct{}
+
+func (f commentRemover) Filter(node *html.Node) bool {
+	if node.DataAtom != atom.Span {
+		return true
+	}
+	for _, a := range node.Attr {
+		if a.Key == "class" && a.Val == "hljs-comment" {
+			return false
+		}
+	}
+	return true
+}
+
+func TestTextFilter(t *testing.T) {
+	cases := []struct {
+		name string
+		html string
+		want string
+	}{
+		{"codeBody", codeBody, `{
+"code": 0, 
+"message": "string", 
+"request_id": "string", 
+"data": {
+"task_id": "string", 
+"task_status": "string", 
+"task_info": { 
+  "external_task_id": "string" 
+},
+"created_at": 1722769557708, 
+"updated_at": 1722769557708 
+}
+}
+
+`},
+	}
+	for _, c := range cases {
+		doc, e := html.Parse(strings.NewReader(c.html))
+		if e != nil {
+			t.Fatalf("%s error: %v", c.name, e)
+		}
+		if got := textOf[commentRemover](doc, false); got != c.want {
+			t.Errorf("%s: `%s`, want `%s`", c.name, got, c.want)
+		}
+	}
+}
