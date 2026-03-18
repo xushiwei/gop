@@ -28,11 +28,19 @@ import (
 type NodeFilter interface {
 	// Filter returns true if the node should be included in the text content.
 	Filter(*html.Node) bool
+
+	// TextNodeData returns the text data of a text node. It can be used to customize
+	// the text data of a text node, for example, to trim spaces or to replace certain
+	// characters.
+	TextNodeData(*html.Node) string
 }
 
 type noFilter struct{}
 
 func (f noFilter) Filter(*html.Node) bool { return true }
+func (f noFilter) TextNodeData(node *html.Node) string {
+	return node.Data
+}
 
 // textOf returns text data of all node's children.
 func textOf[F NodeFilter](node *html.Node, outer bool, f F) string {
@@ -96,15 +104,16 @@ func (p *textPrinter[F]) printNode(node *html.Node, outer, verbatim bool) {
 	if node == nil {
 		return
 	}
+	f := p.nodef
 	if node.Type == html.TextNode {
+		data := f.TextNodeData(node)
 		if verbatim {
-			p.printVerbatim(node.Data)
+			p.printVerbatim(data)
 		} else {
-			p.printCollapsed(node.Data)
+			p.printCollapsed(data)
 		}
 		return
 	}
-	f := p.nodef
 	verbatim = verbatim || node.DataAtom == atom.Pre
 	for child := node.FirstChild; child != nil; child = child.NextSibling {
 		if f.Filter(child) {
@@ -152,8 +161,8 @@ func (p NodeSet) Text__1() (val string, err error) {
 // outer node itself. If outer is true, the text content of the outer node will
 // be included; otherwise, only the text content of the inner nodes will be
 // included.
-func Text[F NodeFilter](p NodeSet, outer bool, f F) (val string, err error) {
-	node, err := p.First()
+func Text[F NodeFilter](ns NodeSet, outer bool, f F) (val string, err error) {
+	node, err := ns.First()
 	if err == nil {
 		val = textOf(&node.Node, outer, f)
 	}

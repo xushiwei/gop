@@ -77,7 +77,9 @@ const codeBody = `<div data-v-9ebd45a1="" class="code-body">
 <span class="hljs-punctuation">}</span></code></pre>
 </div>`
 
-type commentRemover struct{}
+type commentRemover struct {
+	noFilter
+}
 
 func (f commentRemover) Filter(node *html.Node) bool {
 	if node.DataAtom != atom.Span {
