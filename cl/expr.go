@@ -45,7 +45,7 @@ Name context:
 - pkgRef.member = expr (selectorExprLHS)
 - pkgRef.fn(args)      (callExpr)
 - fn(args)             (callExpr)
-- spx.fn(args)         (callExpr)
+- classPkg.fn(args)    (callExpr)
 - this.member          (classMember)
 - this.method(args)    (classMember)
 
@@ -53,7 +53,7 @@ Name lookup:
 - local variables
 - $recv members (only in class files)
 - package globals (variables, constants, types, imported packages etc.)
-- $spx package exports (only in class files)
+- class framework exports (only in class files)
 - $universe package exports (including builtins)
 
 // ---------------------------------------------------------------------------*/

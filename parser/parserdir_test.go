@@ -247,15 +247,6 @@ func doTestParseEntry(t *testing.T, parseEntry func(fset *token.FileSet, filenam
 			t.Fatal("ParseEntry failed:", err)
 		}
 	})
-	t.Run(".spx file", func(t *testing.T) {
-		f, err := parseEntry(fset, "./main.spx", src, conf)
-		if err != nil {
-			t.Fatal("ParseEntry failed:", err)
-		}
-		if !f.IsClass || !f.IsProj || f.IsNormalGox {
-			t.Fatal("ParseEntry main.spx:", f.IsClass, f.IsProj, f.IsNormalGox)
-		}
-	})
 }
 
 func TestParseEntry2(t *testing.T) {

@@ -81,7 +81,7 @@ func (p *Changes) doLookupMod(name string) *module {
 				}
 			})
 		}
-		mod.exts = append(mod.exts, ".xgo", ".gop", ".go", ".gox", ".gmx")
+		mod.exts = append(mod.exts, ".xgo", ".gop", ".go", ".gox")
 		p.mods[name] = mod
 		if debugMod {
 			log.Println("Mod:", name, "Exts:", mod.exts)

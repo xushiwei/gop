@@ -72,9 +72,6 @@ func testKind(t *testing.T, name string, proj, class bool) {
 
 func TestKind(t *testing.T) {
 	testKind(t, "Cat.gox", false, false)
-	testKind(t, "Cat.spx", false, true)
-	testKind(t, "main.spx", true, true)
-	testKind(t, "main.gmx", true, true)
 	testKind(t, "Cat.tspx", false, true)
 	testKind(t, "main.tspx", true, true)
 	testKind(t, "blog_yap.gox", true, true)

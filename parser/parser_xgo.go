@@ -244,9 +244,7 @@ func reqPkg(pkgs map[string]*ast.Package, name string) *ast.Package {
 func defaultClassKind(fname string) (isProj bool, ok bool) {
 	ext := path.Ext(fname)
 	switch ext {
-	case ".spx":
-		return fname == "main.spx", true
-	case ".gsh", ".gmx":
+	case ".gsh":
 		return true, true
 	}
 	return

@@ -36,15 +36,15 @@ import (
 
 // -----------------------------------------------------------------------------
 
-type gmxClass struct {
+type classFile struct {
 	name    string // class type, empty for default project class
 	clsfile string
 	ext     string
-	proj    *gmxProject
-	sp      *spxObj
+	proj    *classProject
+	work    *workClass
 }
 
-func (p *gmxClass) getName(ctx *pkgCtx) string {
+func (p *classFile) getName(ctx *pkgCtx) string {
 	tname := p.name
 	if tname == "" { // use default project class
 		tname = p.proj.getGameClass(ctx)
@@ -52,29 +52,29 @@ func (p *gmxClass) getName(ctx *pkgCtx) string {
 	return tname
 }
 
-type spxObj struct {
+type workClass struct {
 	obj    gogen.Ref // work base class
 	ext    string
 	proto  string           // work class prototype
 	prefix string           // work class prefix
-	feats  spriteFeat       // work class features
+	feats  workClassFeat    // work class features
 	clone  *types.Signature // prototype of Classclone
-	types  []string         // work classes (ie. <type>.spx)
+	types  []string         // generated work class names
 }
 
-func spriteByProto(sprites []*spxObj, proto string) *spxObj {
-	for _, sp := range sprites {
-		if sp.proto == proto {
-			return sp
+func workClassByProto(works []*workClass, proto string) *workClass {
+	for _, work := range works {
+		if work.proto == proto {
+			return work
 		}
 	}
 	return nil
 }
 
-type gmxProject struct {
-	gameClass_ string    // <gmtype>.gmx
-	game       gogen.Ref // Game (project base class)
-	sprites    []*spxObj // .spx => Sprite
+type classProject struct {
+	gameClass_ string       // project class type name
+	game       gogen.Ref    // Game (project base class)
+	works      []*workClass // work classes grouped by extension
 	scheds     []string
 	schedStmts []goast.Stmt // nil or len(scheds) == 2 (delayload)
 	pkgImps    []gogen.PkgRef
@@ -87,14 +87,14 @@ type gmxProject struct {
 	hasMain_   bool
 }
 
-func (p *gmxProject) embed(chk func(name string) bool, flds []*types.Var, pkg *gogen.Package) []*types.Var {
-	for _, sp := range p.sprites {
-		if sp.feats&spriteEmbedded != 0 {
-			for _, spt := range sp.types {
-				spto := pkg.Ref(spt) // work class
-				if chk != nil && !chk(spto.Name()) {
-					pt := types.NewPointer(spto.Type()) // pointer to work class
-					flds = append(flds, types.NewField(token.NoPos, pkg.Types, spto.Name(), pt, false))
+func (p *classProject) embed(chk func(name string) bool, flds []*types.Var, pkg *gogen.Package) []*types.Var {
+	for _, work := range p.works {
+		if work.feats&workClassEmbedded != 0 {
+			for _, workTypeName := range work.types {
+				workType := pkg.Ref(workTypeName) // work class
+				if chk != nil && !chk(workType.Name()) {
+					pt := types.NewPointer(workType.Type()) // pointer to work class
+					flds = append(flds, types.NewField(token.NoPos, pkg.Types, workType.Name(), pt, false))
 				}
 			}
 		}
@@ -102,30 +102,30 @@ func (p *gmxProject) embed(chk func(name string) bool, flds []*types.Var, pkg *g
 	return flds
 }
 
-type spriteFeat uint
+type workClassFeat uint
 
 const (
-	spriteClassfname spriteFeat = 1 << iota
-	spriteClassclone
+	workClassHasName workClassFeat = 1 << iota
+	workClassHasClone
 
-	spriteEmbedded spriteFeat = 0x80
+	workClassEmbedded workClassFeat = 0x80
 )
 
-func spriteFeature(elt types.Type, sp *spxObj) {
+func workClassFeature(elt types.Type, work *workClass) {
 	if intf, ok := elt.(*types.Interface); ok {
 		for i, n := 0, intf.NumMethods(); i < n; i++ {
 			switch m := intf.Method(i); m.Name() {
 			case "Classfname":
-				sp.feats |= spriteClassfname
+				work.feats |= workClassHasName
 			case "Classclone":
-				sp.clone = m.Type().(*types.Signature)
-				sp.feats |= spriteClassclone
+				work.clone = m.Type().(*types.Signature)
+				work.feats |= workClassHasClone
 			}
 		}
 	}
 }
 
-func spriteFeatures(game gogen.Ref, sprites []*spxObj) {
+func workClassFeatures(game gogen.Ref, works []*workClass) {
 	if mainFn := findMethod(game, "Main"); mainFn != nil {
 		sig := mainFn.Type().(*types.Signature)
 		if t, ok := gogen.CheckSigFuncEx(sig); ok {
@@ -133,7 +133,7 @@ func spriteFeatures(game gogen.Ref, sprites []*spxObj) {
 				sig = t.Func.Type().(*types.Signature)
 			}
 		}
-		if n := len(sprites); n == 1 && sig.Variadic() {
+		if n := len(works); n == 1 && sig.Variadic() {
 			// single work class
 			in := sig.Params()
 			last := in.At(in.Len() - 1)
@@ -141,21 +141,21 @@ func spriteFeatures(game gogen.Ref, sprites []*spxObj) {
 			if tn, ok := elt.(*types.Named); ok {
 				elt = tn.Underlying()
 			}
-			spriteFeature(elt, sprites[0])
+			workClassFeature(elt, works[0])
 		} else {
 			// multiple work classes
 			in := sig.Params()
 			for i, narg := 1, in.Len(); i < narg; i++ { // TODO(xsw): error handling
 				tslice := in.At(i).Type().(*types.Slice)
 				tn := tslice.Elem().(*types.Named)
-				sp := spriteByProto(sprites, tn.Obj().Name())
-				spriteFeature(tn.Underlying(), sp)
+				work := workClassByProto(works, tn.Obj().Name())
+				workClassFeature(tn.Underlying(), work)
 			}
 		}
 	}
 }
 
-func (p *gmxProject) getGameClass(ctx *pkgCtx) string {
+func (p *classProject) getGameClass(ctx *pkgCtx) string {
 	tname := p.gameClass_ // project class
 	if tname != "" && tname != "main" {
 		return tname
@@ -176,7 +176,7 @@ func isTestClass(pkg gogen.PkgRef) bool {
 	return scope.Lookup("XGoTestClass") != nil || scope.Lookup("GopTestClass") != nil
 }
 
-func (p *gmxProject) hasMain() bool {
+func (p *classProject) hasMain() bool {
 	if !p.hasMain_ {
 		imps := p.pkgImps
 		p.hasMain_ = len(imps) > 0 && isTestClass(imps[0])
@@ -184,14 +184,14 @@ func (p *gmxProject) hasMain() bool {
 	return p.hasMain_
 }
 
-func (p *gmxProject) getScheds(cb *gogen.CodeBuilder) []goast.Stmt {
+func (p *classProject) getScheds(cb *gogen.CodeBuilder) []goast.Stmt {
 	if p == nil || !p.hasScheds {
 		return nil
 	}
 	if p.schedStmts == nil {
 		p.schedStmts = make([]goast.Stmt, 2)
 		for i, v := range p.scheds {
-			fn := cb.Val(spxLookup(p.pkgImps, v)).Call(0).InternalStack().Pop().Val
+			fn := cb.Val(classPkgLookup(p.pkgImps, v)).Call(0).InternalStack().Pop().Val
 			p.schedStmts[i] = &goast.ExprStmt{X: fn}
 		}
 		if len(p.scheds) < 2 {
@@ -255,7 +255,7 @@ func isGoxTestFile(ext string) bool {
 	return strings.HasSuffix(ext, "test.gox")
 }
 
-func loadClass(ctx *pkgCtx, pkg *gogen.Package, file string, f *ast.File, conf *Config) *gmxProject {
+func loadClass(ctx *pkgCtx, pkg *gogen.Package, file string, f *ast.File, conf *Config) *classProject {
 	tname, clsfile, ext := ClassNameAndExt(file)
 	gt, ok := conf.LookupClass(ext)
 	if !ok {
@@ -264,7 +264,7 @@ func loadClass(ctx *pkgCtx, pkg *gogen.Package, file string, f *ast.File, conf *
 	p, ok := ctx.projs[gt.Ext]
 	if !ok {
 		pkgPaths := gt.PkgPaths
-		p = &gmxProject{pkgPaths: pkgPaths, isTest: isGoxTestFile(ext), gt: gt}
+		p = &classProject{pkgPaths: pkgPaths, isTest: isGoxTestFile(ext), gt: gt}
 		ctx.projs[gt.Ext] = p
 
 		p.pkgImps = make([]gogen.PkgRef, len(pkgPaths))
@@ -286,30 +286,30 @@ func loadClass(ctx *pkgCtx, pkg *gogen.Package, file string, f *ast.File, conf *
 			p.autoimps = autoimps
 		}
 
-		spx := p.pkgImps[0]
+		classPkg := p.pkgImps[0]
 		nWork := len(gt.Works)
-		sprites := make([]*spxObj, nWork)
+		works := make([]*workClass, nWork)
 		for i, v := range gt.Works {
 			if nWork > 1 && v.Proto == "" {
 				panic("should have prototype if there are multiple work classes")
 			}
-			obj, _ := spxRef(spx, v.Class)
-			sp := &spxObj{obj: obj, ext: v.Ext, proto: v.Proto, prefix: v.Prefix}
+			obj, _ := classPkgRef(classPkg, v.Class)
+			work := &workClass{obj: obj, ext: v.Ext, proto: v.Proto, prefix: v.Prefix}
 			if v.Embedded {
-				sp.feats |= spriteEmbedded
+				work.feats |= workClassEmbedded
 			}
-			sprites[i] = sp
+			works[i] = work
 		}
-		p.sprites = sprites
+		p.works = works
 		if gt.Class != "" {
-			p.game, p.gameIsPtr = spxRef(spx, gt.Class)
-			spriteFeatures(p.game, sprites)
+			p.game, p.gameIsPtr = classPkgRef(classPkg, gt.Class)
+			workClassFeatures(p.game, works)
 		}
-		if x := getStringConst(spx, "Gop_sched"); x != "" { // keep Gop_sched
+		if x := getStringConst(classPkg, "Gop_sched"); x != "" { // keep Gop_sched
 			p.scheds, p.hasScheds = strings.SplitN(x, ",", 2), true
 		}
 	}
-	cls := &gmxClass{clsfile: clsfile, ext: ext, proj: p}
+	cls := &classFile{clsfile: clsfile, ext: ext, proj: p}
 	if f.IsProj {
 		if p.gameClass_ != "" {
 			panic("multiple project files found: " + tname + ", " + p.gameClass_)
@@ -326,10 +326,10 @@ func loadClass(ctx *pkgCtx, pkg *gogen.Package, file string, f *ast.File, conf *
 			cls.name = tname
 		}
 	} else {
-		sp := getSpxObj(p, ext)
-		tname := spName(sp, tname)
-		sp.types = append(sp.types, tname)
-		cls.sp = sp
+		work := getWorkClass(p, ext)
+		tname := workClassName(work, tname)
+		work.types = append(work.types, tname)
+		cls.work = work
 		cls.name = tname
 	}
 	ctx.classes[f] = cls
@@ -367,49 +367,49 @@ func workClassTypeNameByExt(gt *Project, ext, name string) string {
 	return sanitizeClassTypeName(name)
 }
 
-func spName(sp *spxObj, name string) string {
-	if sp.prefix != "" {
-		return sp.prefix + name
+func workClassName(work *workClass, name string) string {
+	if work.prefix != "" {
+		return work.prefix + name
 	}
 	return sanitizeClassTypeName(name)
 }
 
-func getSpxObj(p *gmxProject, ext string) *spxObj {
-	for _, sp := range p.sprites {
-		if sp.ext == ext {
-			return sp
+func getWorkClass(p *classProject, ext string) *workClass {
+	for _, work := range p.works {
+		if work.ext == ext {
+			return work
 		}
 	}
 	return nil
 }
 
-func spxLookup(pkgImps []gogen.PkgRef, name string) gogen.Ref {
+func classPkgLookup(pkgImps []gogen.PkgRef, name string) gogen.Ref {
 	for _, pkg := range pkgImps {
 		if o := pkg.TryRef(name); o != nil {
 			return o
 		}
 	}
-	panic("spxLookup: symbol not found - " + name)
+	panic("classPkgLookup: symbol not found - " + name)
 }
 
-func spxTryRef(spx gogen.PkgRef, typ string) (obj types.Object, isPtr bool) {
+func classPkgTryRef(pkg gogen.PkgRef, typ string) (obj types.Object, isPtr bool) {
 	if strings.HasPrefix(typ, "*") {
 		typ, isPtr = typ[1:], true
 	}
-	obj = spx.TryRef(typ)
+	obj = pkg.TryRef(typ)
 	return
 }
 
-func spxRef(spx gogen.PkgRef, typ string) (obj gogen.Ref, isPtr bool) {
-	obj, isPtr = spxTryRef(spx, typ)
+func classPkgRef(pkg gogen.PkgRef, typ string) (obj gogen.Ref, isPtr bool) {
+	obj, isPtr = classPkgTryRef(pkg, typ)
 	if obj == nil {
-		panic(spx.Types.Name() + "." + typ + " not found")
+		panic(pkg.Types.Name() + "." + typ + " not found")
 	}
 	return
 }
 
-func getStringConst(spx gogen.PkgRef, name string) string {
-	if o := spx.TryRef(name); o != nil {
+func getStringConst(pkg gogen.PkgRef, name string) string {
+	if o := pkg.TryRef(name); o != nil {
 		if c, ok := o.(*types.Const); ok {
 			return constant.StringVal(c.Val())
 		}
@@ -442,7 +442,7 @@ func testNameSuffix(testType string) string {
 	return "_" + testType
 }
 
-func gmxTestFunc(pkg *gogen.Package, testType string, isProj bool) {
+func genClassTestFunc(pkg *gogen.Package, testType string, isProj bool) {
 	if isProj {
 		genTestFunc(pkg, "TestMain", testType, "m", "M")
 	} else {
@@ -463,8 +463,8 @@ func genTestFunc(pkg *gogen.Package, name, testType, param, paramType string) {
 		End()
 }
 
-func gmxCheckProjs(pkg *gogen.Package, ctx *pkgCtx) (*gmxProject, bool) {
-	var projMain, projNoMain *gmxProject
+func checkClassProjects(pkg *gogen.Package, ctx *pkgCtx) (*classProject, bool) {
+	var projMain, projNoMain *classProject
 	var multiMain, multiNoMain bool
 	for _, v := range ctx.projs {
 		if v.isTest {
@@ -484,7 +484,7 @@ func gmxCheckProjs(pkg *gogen.Package, ctx *pkgCtx) (*gmxProject, bool) {
 			}
 		}
 		if v.game != nil {
-			gmxProjMain(pkg, ctx, v)
+			genClassProjectMain(pkg, ctx, v)
 		}
 	}
 	if projMain != nil {
@@ -493,7 +493,7 @@ func gmxCheckProjs(pkg *gogen.Package, ctx *pkgCtx) (*gmxProject, bool) {
 	return projNoMain, multiNoMain
 }
 
-func gmxProjMain(pkg *gogen.Package, parent *pkgCtx, proj *gmxProject) {
+func genClassProjectMain(pkg *gogen.Package, parent *pkgCtx, proj *classProject) {
 	base := proj.game                      // project base class
 	classType := proj.getGameClass(parent) // project class
 	ld := getTypeLoader(parent, parent.syms, token.NoPos, token.NoPos, classType)
@@ -568,19 +568,19 @@ func gmxProjMain(pkg *gogen.Package, parent *pkgCtx, proj *gmxProject) {
 			iobj := 0
 			narg := sigParams.Len()
 			if narg > 1 {
-				sprites := proj.sprites
-				if len(sprites) == 1 && sprites[0].proto == "" { // no work class prototype
-					sp := sprites[0]
-					narg = 1 + len(sp.types)
-					genWorkClasses(pkg, parent, cb, recv, sp, iobj, -1, callMain)
+				works := proj.works
+				if len(works) == 1 && works[0].proto == "" { // no work class prototype
+					work := works[0]
+					narg = 1 + len(work.types)
+					genWorkClasses(pkg, parent, cb, recv, work, iobj, -1, callMain)
 				} else {
 					lstNames := make([]string, narg)
 					for i := 1; i < narg; i++ {
 						tslice := sigParams.At(i).Type()
 						tn := tslice.(*types.Slice).Elem().(*types.Named)
-						sp := spriteByProto(sprites, tn.Obj().Name()) // work class
-						if n := len(sp.types); n > 0 {
-							lstNames[i] = genWorkClasses(pkg, parent, cb, recv, sp, iobj, i, nil)
+						work := workClassByProto(works, tn.Obj().Name()) // work class
+						if n := len(work.types); n > 0 {
+							lstNames[i] = genWorkClasses(pkg, parent, cb, recv, work, iobj, i, nil)
 							cb.SliceLitEx(tslice, n, false).EndInit(1)
 							iobj += n
 						}
@@ -605,23 +605,23 @@ func gmxProjMain(pkg *gogen.Package, parent *pkgCtx, proj *gmxProject) {
 
 func genWorkClasses(
 	pkg *gogen.Package, parent *pkgCtx, cb *gogen.CodeBuilder, recv *types.Var,
-	sp *spxObj, iobj, ilst int, callMain func()) (lstName string) {
+	work *workClass, iobj, ilst int, callMain func()) (lstName string) {
 	const (
 		indexGame     = 1
 		objNamePrefix = "_xgo_obj"
 		lstNamePrefix = "_xgo_lst"
 	)
-	embedded := (sp.feats&spriteEmbedded != 0)
-	sptypes := sp.types
-	for i, spt := range sptypes {
-		src := parent.lookupClassNode(spt)
-		spto := pkg.Ref(spt)
+	embedded := (work.feats&workClassEmbedded != 0)
+	workTypes := work.types
+	for i, workTypeName := range workTypes {
+		src := parent.lookupClassNode(workTypeName)
+		workType := pkg.Ref(workTypeName)
 		objName := objNamePrefix + strconv.Itoa(iobj+i)
 		cb.DefineVarStart(token.NoPos, objName).
-			Val(indexGame, src).Val(recv, src).StructLit(spto.Type(), 2, true, src).
+			Val(indexGame, src).Val(recv, src).StructLit(workType.Type(), 2, true, src).
 			UnaryOp(gotoken.AND).EndInit(1)
 		if embedded {
-			cb.Val(recv, src).MemberRef(spt, src).VarVal(objName, src).Assign(1)
+			cb.Val(recv, src).MemberRef(workTypeName, src).VarVal(objName, src).Assign(1)
 		}
 	}
 	if ilst > 0 {
@@ -630,7 +630,7 @@ func genWorkClasses(
 	} else {
 		callMain()
 	}
-	for i, spt := range sptypes {
+	for i, spt := range workTypes {
 		src := parent.lookupClassNode(spt)
 		objName := objNamePrefix + strconv.Itoa(iobj+i)
 		cb.VarVal(objName, src)
@@ -685,7 +685,7 @@ func makeMainSig(recv *types.Var, f *types.Func) *types.Signature {
 	return types.NewSignatureType(recv, nil, nil, types.NewTuple(params...), sig.Results(), false)
 }
 
-func genClassfname(ctx *blockCtx, c *gmxClass) {
+func genClassfname(ctx *blockCtx, c *classFile) {
 	pkg := ctx.pkg
 	recv := toRecv(ctx, ctx.classRecv)
 	ret := types.NewTuple(pkg.NewParam(token.NoPos, "", types.Typ[types.String]))

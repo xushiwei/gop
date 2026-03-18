@@ -229,7 +229,7 @@ func toExternalType(ctx *blockCtx, v *ast.SelectorExpr) types.Type {
 Name context:
 - type
 - pkgRef.type
-- spx.type
+- classPkg.type
 
 // ---------------------------------------------------------------------------*/
 
