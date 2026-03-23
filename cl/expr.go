@@ -921,7 +921,6 @@ func compileCallExpr(ctx *blockCtx, lhs int, v *ast.CallExpr, inFlags int) {
 const (
 	msgNoKwargsOVF         = "keyword arguments are not supported for a function with only variadic parameters"
 	msgNoEnoughArgToKwargs = "not enough arguments for function call with keyword arguments"
-	msgUnexpectedKwargs    = "keyword arguments can only be used for struct, map[string]T or interface types, but got %v"
 	msgIfaceNoMatchKeyword = "interface %v does not support unknown keyword %q"
 	msgIfaceNeedReceiver   = "interface-based keyword arguments require a method call with a receiver, but got %v"
 )
@@ -943,11 +942,12 @@ func mergeKwargs(ctx *blockCtx, v *ast.CallExpr, t types.Type) ast.Expr {
 			if u, ok := t.Underlying().(*types.Struct); ok {
 				return mergeStructKwargs(v.Kwargs, u, inThisPkg(ctx, t))
 			}
-			panic(ctx.newCodeErrorf(v.Pos(), v.End(), msgUnexpectedKwargs, t))
 		case *types.Struct:
 			return mergeStructKwargs(v.Kwargs, u, inThisPkg(ctx, t))
 		case *types.Interface:
-			return mergeInterfaceKwargs(ctx, v, t, u)
+			if named, ok := t.(*types.Named); ok {
+				return mergeInterfaceKwargs(ctx, v, named, u)
+			}
 		}
 	}
 	return mergeStringMapKwargs(v.Kwargs) // fallback to map[string]T
@@ -1012,19 +1012,13 @@ func getFldName(name *ast.Ident, u *types.Struct, inPkg bool) *ast.Ident {
 //	receiver.InterfaceName().MaxOutputTokens(1024).System("hello")
 //
 // See https://github.com/goplus/xgo/issues/2678
-func mergeInterfaceKwargs(ctx *blockCtx, v *ast.CallExpr, t types.Type, iface *types.Interface) ast.Expr {
-	named, ok := t.(*types.Named)
-	if !ok {
-		panic(ctx.newCodeErrorf(v.Pos(), v.End(), msgUnexpectedKwargs, t))
-	}
+func mergeInterfaceKwargs(ctx *blockCtx, v *ast.CallExpr, named *types.Named, iface *types.Interface) ast.Expr {
 	ifaceName := named.Obj().Name()
 
 	se, ok := v.Fun.(*ast.SelectorExpr)
-	if !ok {
+	if !ok || !isAppendable(se.X) { // TODO(xsw): support more complex receiver expressions
 		panic(ctx.newCodeErrorf(v.Pos(), v.End(), msgIfaceNeedReceiver, ifaceName))
 	}
-
-	hasSet := ifaceHasSetMethod(iface, t)
 
 	// Build the factory call: receiver.InterfaceName()
 	pos := v.Kwargs[0].Pos()
@@ -1035,69 +1029,76 @@ func mergeInterfaceKwargs(ctx *blockCtx, v *ast.CallExpr, t types.Type, iface *t
 		},
 	}
 
+	var initHasSet, hasSet bool
 	for _, kwarg := range v.Kwargs {
-		methodName := findIfaceMethod(iface, kwarg.Name.Name)
-		if methodName != "" {
+		kwName := kwarg.Name.Name
+		name := kwName
+		if c := name[0]; c >= 'a' && c <= 'z' {
+			name = string(rune(c)+('A'-'a')) + name[1:]
+		}
+		if ifaceHasKeyword(iface, name, named) {
 			chain = &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
 					X:   chain,
-					Sel: &ast.Ident{NamePos: kwarg.Name.NamePos, Name: methodName},
+					Sel: &ast.Ident{NamePos: kwarg.Name.NamePos, Name: name},
 				},
 				Args: []ast.Expr{kwarg.Value},
 			}
-		} else if hasSet {
+			continue
+		}
+		if !initHasSet {
+			hasSet = ifaceHasSetMethod(iface, named)
+			initHasSet = true
+		}
+		if hasSet {
 			chain = &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
 					X:   chain,
 					Sel: &ast.Ident{NamePos: kwarg.Name.NamePos, Name: "Set"},
 				},
 				Args: []ast.Expr{
-					&ast.BasicLit{ValuePos: kwarg.Name.NamePos, Kind: token.STRING, Value: strconv.Quote(kwarg.Name.Name)},
+					&ast.BasicLit{ValuePos: kwarg.Name.NamePos, Kind: token.STRING, Value: strconv.Quote(kwName)},
 					kwarg.Value,
 				},
 			}
 		} else {
-			panic(ctx.newCodeErrorf(kwarg.Pos(), kwarg.End(), msgIfaceNoMatchKeyword, t, kwarg.Name.Name))
+			panic(ctx.newCodeErrorf(kwarg.Pos(), kwarg.End(), msgIfaceNoMatchKeyword, named, kwName))
 		}
 	}
-
 	return chain
 }
 
 // ifaceHasSetMethod reports whether iface has a Set(string, any) Self method.
-func ifaceHasSetMethod(iface *types.Interface, self types.Type) bool {
-	for i := 0; i < iface.NumMethods(); i++ {
-		m := iface.Method(i)
-		if m.Name() != "Set" {
-			continue
-		}
+func ifaceHasSetMethod(iface *types.Interface, self *types.Named) bool {
+	if m := ifaceFindMethod(iface, "Set"); m != nil {
 		sig, ok := m.Type().(*types.Signature)
-		if !ok || sig.Params().Len() != 2 || sig.Results().Len() != 1 {
-			continue
-		}
-		if isStringType(sig.Params().At(0).Type()) &&
-			isAnyType(sig.Params().At(1).Type()) &&
-			types.Identical(sig.Results().At(0).Type(), self) {
-			return true
+		if ok && sig.Params().Len() == 2 && sig.Results().Len() == 1 {
+			return isStringType(sig.Params().At(0).Type()) &&
+				isAnyType(sig.Params().At(1).Type()) &&
+				types.Identical(sig.Results().At(0).Type(), self)
 		}
 	}
 	return false
 }
 
-// findIfaceMethod finds a method on the interface matching kwName (case-insensitive).
-// Returns the actual method name if found, or "" if not.
-func findIfaceMethod(iface *types.Interface, kwName string) string {
-	kwLower := strings.ToLower(kwName)
-	for i := 0; i < iface.NumMethods(); i++ {
-		m := iface.Method(i)
-		if m.Name() == "Set" {
-			continue
-		}
-		if strings.ToLower(m.Name()) == kwLower {
-			return m.Name()
+func ifaceHasKeyword(iface *types.Interface, kwName string, self *types.Named) bool {
+	if m := ifaceFindMethod(iface, kwName); m != nil {
+		sig, ok := m.Type().(*types.Signature)
+		if ok && sig.Params().Len() == 1 && sig.Results().Len() == 1 {
+			return types.Identical(sig.Results().At(0).Type(), self)
 		}
 	}
-	return ""
+	return false
+}
+
+func ifaceFindMethod(iface *types.Interface, kwName string) *types.Func {
+	for i := 0; i < iface.NumMethods(); i++ {
+		m := iface.Method(i)
+		if m.Name() == kwName {
+			return m
+		}
+	}
+	return nil
 }
 
 func isStringType(t types.Type) bool {
