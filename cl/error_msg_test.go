@@ -1148,3 +1148,35 @@ var a = struct{v int}{(x => x)}
 var a = struct{v int}{v: (x => x)}
 `)
 }
+
+func TestErrInterfaceKwargsNoSet(t *testing.T) {
+	codeErrorTest(t, `bar.xgo:14:39: interface Params does not support unknown keyword "topP"`, `
+type Params interface {
+    MaxTokens(int64) Params
+}
+
+type paramsImpl struct{}
+func (p *paramsImpl) MaxTokens(n int64) Params { return p }
+
+type Client struct{}
+func (c *Client) Params() Params { return &paramsImpl{} }
+func (c *Client) Complete(prompt string, params Params) {}
+
+var c Client
+c.Complete "hello", maxTokens = 1024, topP = 0.9
+`)
+}
+
+func TestErrInterfaceKwargsNoFactory(t *testing.T) {
+	codeErrorTest(t, `bar.xgo:10:1: c.Complete "hello", maxTok undefined (type Client has no field or method Params)`, `
+type Params interface {
+    MaxTokens(int64) Params
+}
+
+type Client struct{}
+func (c *Client) Complete(prompt string, params Params) {}
+
+var c Client
+c.Complete "hello", maxTokens = 1024
+`)
+}

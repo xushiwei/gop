@@ -921,7 +921,9 @@ func compileCallExpr(ctx *blockCtx, lhs int, v *ast.CallExpr, inFlags int) {
 const (
 	msgNoKwargsOVF         = "keyword arguments are not supported for a function with only variadic parameters"
 	msgNoEnoughArgToKwargs = "not enough arguments for function call with keyword arguments"
-	msgUnexpectedKwargs    = "keyword arguments can only be used for struct or map[string]T types, but got %v"
+	msgUnexpectedKwargs    = "keyword arguments can only be used for struct, map[string]T or interface types, but got %v"
+	msgIfaceNoMatchKeyword = "interface %v does not support unknown keyword %q"
+	msgIfaceNeedReceiver   = "interface-based keyword arguments require a method call with a receiver, but got %v"
 )
 
 func inThisPkg(ctx *blockCtx, t types.Type) bool {
@@ -944,6 +946,8 @@ func mergeKwargs(ctx *blockCtx, v *ast.CallExpr, t types.Type) ast.Expr {
 			panic(ctx.newCodeErrorf(v.Pos(), v.End(), msgUnexpectedKwargs, t))
 		case *types.Struct:
 			return mergeStructKwargs(v.Kwargs, u, inThisPkg(ctx, t))
+		case *types.Interface:
+			return mergeInterfaceKwargs(ctx, v, t, u)
 		}
 	}
 	return mergeStringMapKwargs(v.Kwargs) // fallback to map[string]T
@@ -999,6 +1003,111 @@ func getFldName(name *ast.Ident, u *types.Struct, inPkg bool) *ast.Ident {
 		}
 	}
 	return name // fallback to origin name
+}
+
+// mergeInterfaceKwargs synthesizes a builder-pattern method chain for interface-based
+// keyword arguments. Given kwargs like `maxOutputTokens = 1024, system = "hello"`,
+// it produces an AST equivalent to:
+//
+//	receiver.InterfaceName().MaxOutputTokens(1024).System("hello")
+//
+// See https://github.com/goplus/xgo/issues/2678
+func mergeInterfaceKwargs(ctx *blockCtx, v *ast.CallExpr, t types.Type, iface *types.Interface) ast.Expr {
+	named, ok := t.(*types.Named)
+	if !ok {
+		panic(ctx.newCodeErrorf(v.Pos(), v.End(), msgUnexpectedKwargs, t))
+	}
+	ifaceName := named.Obj().Name()
+
+	se, ok := v.Fun.(*ast.SelectorExpr)
+	if !ok {
+		panic(ctx.newCodeErrorf(v.Pos(), v.End(), msgIfaceNeedReceiver, ifaceName))
+	}
+
+	hasSet := ifaceHasSetMethod(iface, t)
+
+	// Build the factory call: receiver.InterfaceName()
+	pos := v.Kwargs[0].Pos()
+	var chain ast.Expr = &ast.CallExpr{
+		Fun: &ast.SelectorExpr{
+			X:   se.X,
+			Sel: &ast.Ident{NamePos: pos, Name: ifaceName},
+		},
+	}
+
+	for _, kwarg := range v.Kwargs {
+		methodName := findIfaceMethod(iface, kwarg.Name.Name)
+		if methodName != "" {
+			chain = &ast.CallExpr{
+				Fun: &ast.SelectorExpr{
+					X:   chain,
+					Sel: &ast.Ident{NamePos: kwarg.Name.NamePos, Name: methodName},
+				},
+				Args: []ast.Expr{kwarg.Value},
+			}
+		} else if hasSet {
+			chain = &ast.CallExpr{
+				Fun: &ast.SelectorExpr{
+					X:   chain,
+					Sel: &ast.Ident{NamePos: kwarg.Name.NamePos, Name: "Set"},
+				},
+				Args: []ast.Expr{
+					&ast.BasicLit{ValuePos: kwarg.Name.NamePos, Kind: token.STRING, Value: strconv.Quote(kwarg.Name.Name)},
+					kwarg.Value,
+				},
+			}
+		} else {
+			panic(ctx.newCodeErrorf(kwarg.Pos(), kwarg.End(), msgIfaceNoMatchKeyword, t, kwarg.Name.Name))
+		}
+	}
+
+	return chain
+}
+
+// ifaceHasSetMethod reports whether iface has a Set(string, any) Self method.
+func ifaceHasSetMethod(iface *types.Interface, self types.Type) bool {
+	for i := 0; i < iface.NumMethods(); i++ {
+		m := iface.Method(i)
+		if m.Name() != "Set" {
+			continue
+		}
+		sig, ok := m.Type().(*types.Signature)
+		if !ok || sig.Params().Len() != 2 || sig.Results().Len() != 1 {
+			continue
+		}
+		if isStringType(sig.Params().At(0).Type()) &&
+			isAnyType(sig.Params().At(1).Type()) &&
+			types.Identical(sig.Results().At(0).Type(), self) {
+			return true
+		}
+	}
+	return false
+}
+
+// findIfaceMethod finds a method on the interface matching kwName (case-insensitive).
+// Returns the actual method name if found, or "" if not.
+func findIfaceMethod(iface *types.Interface, kwName string) string {
+	kwLower := strings.ToLower(kwName)
+	for i := 0; i < iface.NumMethods(); i++ {
+		m := iface.Method(i)
+		if m.Name() == "Set" {
+			continue
+		}
+		if strings.ToLower(m.Name()) == kwLower {
+			return m.Name()
+		}
+	}
+	return ""
+}
+
+func isStringType(t types.Type) bool {
+	basic, ok := t.(*types.Basic)
+	return ok && basic.Kind() == types.String
+}
+
+func isAnyType(t types.Type) bool {
+	iface, ok := t.(*types.Interface)
+	return ok && iface.Empty()
 }
 
 func toBasicLit(fn *ast.Ident) *ast.BasicLit {
