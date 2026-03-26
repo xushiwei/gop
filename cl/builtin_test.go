@@ -316,6 +316,8 @@ func TestFileClassType(t *testing.T) {
 		{true, true, false, "Abc.gox", "Abc", false, true},
 		{true, true, false, "abc_demo.gox", "abc", false, true},
 		{true, true, false, "Abc_demo.gox", "Abc", false, true},
+		{true, true, false, "chan.gox", "_chan", false, true},
+		{true, true, false, "chan_demo.gox", "_chan", false, true},
 
 		{true, true, false, "main.gox", "_main", false, true},
 		{true, true, false, "main_demo.gox", "_main", false, true},
@@ -332,7 +334,10 @@ func TestFileClassType(t *testing.T) {
 
 		{true, false, false, "abc_yap.gox", "abc", false, true},
 		{true, false, false, "Abc_yap.gox", "Abc", false, true},
+		{true, false, false, "chan_yap.gox", "_chan", false, true},
 		{true, false, true, "main_yap.gox", "App", false, true},
+		{true, false, true, "chan_app.gox", "_chan", false, true},
+		{true, false, false, "chan_cmd.gox", "Cmd_chan", false, true},
 
 		{true, false, true, "abc_yap.gox", "abc", false, true},
 		{true, false, true, "Abc_yap.gox", "Abc", false, true},
@@ -353,6 +358,13 @@ func TestFileClassType(t *testing.T) {
 			return &modfile.Project{
 				Ext: "_yap.gox", Class: "App",
 				PkgPaths: []string{"github.com/goplus/yap"}}, true
+		case "_app.gox", "_cmd.gox":
+			return &modfile.Project{
+				Ext: "_app.gox", Class: "App",
+				Works: []*modfile.Class{
+					{Ext: "_cmd.gox", Class: "Command", Prefix: "Cmd_"},
+				},
+				PkgPaths: []string{"github.com/goplus/cobra/xcmd"}}, true
 		case "_ytest.gox":
 			return &modfile.Project{
 				Ext: "_ytest.gox", Class: "App",

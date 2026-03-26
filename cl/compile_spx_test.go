@@ -1061,6 +1061,25 @@ type foo struct {
 `, "foo.gox")
 }
 
+func TestGoxReservedTypeName(t *testing.T) {
+	gopClTestFile(t, `
+println "hi"
+`, `package main
+
+import "fmt"
+
+type _chan struct {
+}
+
+func (this *_chan) Main() {
+	fmt.Println("hi")
+}
+func main() {
+	new(_chan).Main()
+}
+`, "chan.gox")
+}
+
 func TestGoxOverload(t *testing.T) {
 	gopClTestFile(t, `
 func addString(a, b string) string {

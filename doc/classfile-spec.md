@@ -13,7 +13,6 @@ There are two kinds of classfiles:
 The following terms are used throughout this document:
 - Class extension: the normalized classfile suffix used for framework lookup, e.g., `_app.gox` and `.gsh`
 - Class file stem: the filename without the class extension
-- Class file name: the class file stem before any type-name normalization
 - Class type: the generated named type for a classfile
 - Field declaration block: the unique top-level `var` declaration that is interpreted as class fields rather than
   package variables
@@ -90,6 +89,7 @@ Ignoring comments, a classfile has the following top-level structure:
 ```ebnf
 Classfile = [ PackageClause ] { ImportDecl } { ClassDecl } [ TopLevelStmtList ] .
 ClassDecl = ConstDecl | TypeDecl | VarDecl | FuncDecl .
+TopLevelStmtList = StatementList .
 ```
 
 The optional `TopLevelStmtList` must be the final top-level construct in the file. After the first top-level statement
@@ -132,6 +132,10 @@ Tag            = string_lit .
 The following special rule applies only inside the field declaration block:
 - A spec consisting of exactly one identifier, with no explicit type and no initializer, declares an embedded field
   whose type is that identifier
+- This is the only case in which `IdentifierList` may appear without either a `Type` or an `=` initializer
+
+For any other `FieldSpec`, ordinary `var`-declaration validity rules apply. In particular, at least a `Type` or an `=`
+initializer must be present.
 
 Examples:
 
@@ -165,15 +169,16 @@ The class file stem is normalized as follows:
 
 Examples:
 - `Rect.gox` produces the initial type name `Rect`
-- `get_p_#id_app.gox` has class file name `get_p_#id` and normalized type name `get_p_id`
+- `get_p_#id_app.gox` has class file stem `get_p_#id` and normalized type name `get_p_id`
 
 Framework metadata may further transform the type name:
-- A non-empty work-class `-prefix=` is prepended to the normalized work-file stem
-- If no prefix is supplied and the work-file stem equals one of the reserved names `init`, `main`, `go`, `goto`, `type`,
-  `var`, `import`, `package`, `interface`, `struct`, `const`, `func`, `map`, `for`, `if`, `else`, `switch`, `case`,
-  `select`, `defer`, `range`, `return`, `break`, `continue`, `fallthrough`, or `default`, an underscore is prepended
 - A project file whose class file stem is `main`, or a framework that has no explicit project file, uses the project
   base-class name as its default class type name. A leading `*` on the base-class name is removed
+- A non-empty work-class `-prefix=` is prepended to the normalized work-file stem
+- If neither of the previous rules applies and the class type name would otherwise equal one of the reserved names
+  `init`, `main`, `go`, `goto`, `type`, `var`, `import`, `package`, `interface`, `struct`, `const`, `func`, `map`,
+  `chan`, `for`, `if`, `else`, `switch`, `case`, `select`, `defer`, `range`, `return`, `break`, `continue`,
+  `fallthrough`, or `default`, an underscore is prepended
 
 The generated class type must be unique within the package after all such normalization.
 
@@ -224,7 +229,7 @@ A top-level function declaration that already has an explicit receiver is not re
 
 ### Static method declaration
 
-The classfile parser also accepts the following classfile-only declaration form:
+The classfile parser also accepts the following classfile-only `FuncDecl` form:
 
 ```ebnf
 StaticMethodDecl = "func" "." identifier Signature [ FunctionBody ] .
@@ -463,7 +468,7 @@ If the work prototype contains a method named `Classfname`, the compiler generat
 func (this *T) Classfname() string
 ```
 
-The method returns the class file name, which is the class file stem before type-name normalization.
+The method returns the class file stem.
 
 Examples:
 - `hello_tool.gox` yields `hello`
@@ -471,8 +476,9 @@ Examples:
 
 ### `Classclone`
 
-If the work prototype contains a method named `Classclone`, the compiler generates a shallow-clone method with the
-required signature.
+If the work prototype contains a method named `Classclone`, the compiler generates a shallow-clone method named
+`Classclone` with no parameters other than the receiver. Its result list is adopted from the prototype's `Classclone`
+declaration.
 
 The generated implementation copies `*this` by value into a temporary variable and returns the address of that temporary
 value.

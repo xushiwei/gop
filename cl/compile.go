@@ -814,6 +814,7 @@ func preloadXGoFile(p *gogen.Package, ctx *blockCtx, file string, f *ast.File, c
 	if f.IsClass {
 		if f.IsNormalGox {
 			classType, _, _ = ClassNameAndExt(file)
+			classType = sanitizeClassTypeName(classType)
 			if f.ShadowEntry != nil {
 				parent.goxMainClass = classType
 				parent.goxMain++
