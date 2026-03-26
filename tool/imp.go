@@ -174,7 +174,7 @@ func (p *Importer) Import(pkgPath string) (pkg *types.Package, err error) {
 				defer os.Chmod(modDir, modReadonly)
 				os.WriteFile(goModfile, defaultGoMod(ret.ModPath), 0644)
 			}
-			return p.impFrom.ImportFrom(pkgPath, ret.ModDir, 0)
+			return p.impFrom.ImportFrom(pkgPath, modDir, 0)
 		case xgomod.PkgtModule, xgomod.PkgtLocal:
 			if pkgPath == p.mod.Path() {
 				break

@@ -1,0 +1,26 @@
+type foo struct {
+}
+
+func (a foo) mulInt(b int) (ret foo) {
+	return
+}
+
+func (a foo) mulFoo(b foo) (ret foo) {
+	return
+}
+
+func intMulFoo(a int, b foo) (ret foo) {
+	return
+}
+
+func (foo).* = (
+	(foo).mulInt
+	(foo).mulFoo
+	intMulFoo
+)
+
+var a, b foo
+
+println a * 10
+println a * b
+println 10 * a
