@@ -1243,7 +1243,6 @@ func preloadFile(p *gogen.Package, ctx *blockCtx, f *ast.File, goFile string, ge
 			exov := false
 			name := d.Name
 		LoopFunc:
-
 			for idx, fn := range d.Funcs {
 				switch expr := fn.(type) {
 				case *ast.Ident:
