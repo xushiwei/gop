@@ -1,0 +1,11 @@
+func add = (
+	func(a, b int) int {
+		return a + b
+	}
+	func(a, b string) string {
+		return a + b
+	}
+)
+
+echo add(100, 7)
+echo add("Hello", "World")
