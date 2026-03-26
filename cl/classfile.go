@@ -225,17 +225,24 @@ func GetFileClassType(file *ast.File, filename string, lookupClass func(ext stri
 		classType, _, ext = ClassNameAndExt(filename)
 		if file.IsNormalGox {
 			isTest = strings.HasSuffix(ext, "_test.gox")
-			if !isTest && classType == "main" {
-				classType = "_main"
+			if !isTest {
+				classType = sanitizeClassTypeName(classType)
 			}
 		} else {
 			isTest = strings.HasSuffix(ext, "test.gox")
-		}
-		if file.IsProj && classType == "main" {
 			if gt, ok := lookupClass(ext); ok {
-				classType = gt.Class
+				if file.IsProj {
+					if classType == "main" {
+						classType = gt.Class
+					} else {
+						classType = sanitizeClassTypeName(classType)
+					}
+				} else {
+					classType = workClassTypeNameByExt(gt, ext, classType)
+				}
 			}
-		} else if isTest {
+		}
+		if !file.IsProj && isTest {
 			classType = casePrefix + testNameSuffix(classType)
 		}
 	} else if strings.HasSuffix(filename, "_test.xgo") || strings.HasSuffix(filename, "_test.gop") {
@@ -307,6 +314,9 @@ func loadClass(ctx *pkgCtx, pkg *gogen.Package, file string, f *ast.File, conf *
 		if p.gameClass_ != "" {
 			panic("multiple project files found: " + tname + ", " + p.gameClass_)
 		}
+		if tname != "main" {
+			tname = sanitizeClassTypeName(tname)
+		}
 		p.gameClass_ = tname
 		p.hasMain_ = f.HasShadowEntry()
 		if !p.isTest {
@@ -334,18 +344,34 @@ type none = struct{}
 var specialNames = map[string]none{
 	"init": {}, "main": {}, "go": {}, "goto": {}, "type": {}, "var": {}, "import": {},
 	"package": {}, "interface": {}, "struct": {}, "const": {}, "func": {}, "map": {},
-	"for": {}, "if": {}, "else": {}, "switch": {}, "case": {}, "select": {}, "defer": {},
+	"chan": {}, "for": {}, "if": {}, "else": {}, "switch": {}, "case": {}, "select": {}, "defer": {},
 	"range": {}, "return": {}, "break": {}, "continue": {}, "fallthrough": {}, "default": {},
+}
+
+func sanitizeClassTypeName(name string) string {
+	if _, ok := specialNames[name]; ok {
+		return "_" + name
+	}
+	return name
+}
+
+func workClassTypeNameByExt(gt *Project, ext, name string) string {
+	for _, work := range gt.Works {
+		if work.Ext == ext {
+			if work.Prefix != "" {
+				return work.Prefix + name
+			}
+			break
+		}
+	}
+	return sanitizeClassTypeName(name)
 }
 
 func spName(sp *spxObj, name string) string {
 	if sp.prefix != "" {
 		return sp.prefix + name
 	}
-	if _, ok := specialNames[name]; ok {
-		name = "_" + name
-	}
-	return name
+	return sanitizeClassTypeName(name)
 }
 
 func getSpxObj(p *gmxProject, ext string) *spxObj {
