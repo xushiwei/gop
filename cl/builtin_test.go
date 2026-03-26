@@ -56,32 +56,28 @@ func TestConvKwargs1(t *testing.T) {
 	ctx := &blockCtx{
 		pkgCtx: &pkgCtx{},
 	}
-	defer func() {
-		ce, ok := recover().(*gogen.CodeError)
-		if !ok {
-			t.Fatal("convKwargs: not gogen.CodeError")
-		}
-		if ce.Msg != msgNoKwargsOVF {
-			t.Fatal("convKwargs: unexpected error -", ce.Msg)
-		}
-	}()
-	convKwargs(ctx, &ast.CallExpr{Fun: &ast.Ident{}}, &fnType{variadic: true})
+	_, e := convKwargs(ctx, &ast.CallExpr{Fun: &ast.Ident{}}, &fnType{variadic: true})
+	ce, ok := e.(*gogen.CodeError)
+	if !ok {
+		t.Fatal("convKwargs: not gogen.CodeError")
+	}
+	if ce.Msg != msgNoKwargsOVF {
+		t.Fatal("convKwargs: unexpected error -", ce.Msg)
+	}
 }
 
 func TestConvKwargs2(t *testing.T) {
 	ctx := &blockCtx{
 		pkgCtx: &pkgCtx{},
 	}
-	defer func() {
-		ce, ok := recover().(*gogen.CodeError)
-		if !ok {
-			t.Fatal("convKwargs: not gogen.CodeError")
-		}
-		if ce.Msg != msgNoEnoughArgToKwargs {
-			t.Fatal("convKwargs: unexpected error -", ce.Msg)
-		}
-	}()
-	convKwargs(ctx, &ast.CallExpr{Fun: &ast.Ident{}}, &fnType{size: 2, variadic: true})
+	_, e := convKwargs(ctx, &ast.CallExpr{Fun: &ast.Ident{}}, &fnType{size: 2, variadic: true})
+	ce, ok := e.(*gogen.CodeError)
+	if !ok {
+		t.Fatal("convKwargs: not gogen.CodeError")
+	}
+	if ce.Msg != msgNoEnoughArgToKwargs {
+		t.Fatal("convKwargs: unexpected error -", ce.Msg)
+	}
 }
 
 func TestLoadExpr(t *testing.T) {

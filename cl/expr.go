@@ -878,20 +878,21 @@ func compileCallExpr(ctx *blockCtx, lhs int, v *ast.CallExpr, inFlags int) {
 	}
 	pfn := stk.Get(-1)
 	fn := &fnType{}
-	fn.load(pfn.Type)
-	for fn != nil {
+	for fn.load(pfn.Type); fn != nil; fn = fn.next {
 		nv := v
 		if len(v.Kwargs) > 0 { // https://github.com/goplus/xgo/issues/2443
-			nv = convKwargs(ctx, v, fn)
+			if nv, err = convKwargs(ctx, v, fn); err != nil {
+				continue
+			}
 		}
 		if err = compileCallArgs(ctx, lhs, pfn, fn, nv, ellipsis, flags); err == nil {
 			if rec := ctx.recorder(); rec != nil {
-				rec.recordCallExpr(ctx, nv, fn.sig)
+				// should use original v instead of nv for correct position info
+				rec.recordCallExpr(ctx, v, fn.sig)
 			}
 			return
 		}
 		stk.SetLen(base)
-		fn = fn.next
 	}
 	if ifn != nil && builtinOrXGoExec(ctx, lhs, ifn, v, flags) == nil {
 		return
@@ -899,16 +900,16 @@ func compileCallExpr(ctx *blockCtx, lhs int, v *ast.CallExpr, inFlags int) {
 	panic(err)
 }
 
-func convKwargs(ctx *blockCtx, v *ast.CallExpr, fn *fnType) *ast.CallExpr {
+func convKwargs(ctx *blockCtx, v *ast.CallExpr, fn *fnType) (*ast.CallExpr, error) {
 	n := len(v.Args)
 	args := make([]ast.Expr, n+1)
 	if fn.variadic { // has variadic parameter
 		idx := fn.size - 1
 		if idx < 0 {
-			panic(ctx.newCodeError(v.Pos(), v.End(), msgNoKwargsOVF))
+			return nil, ctx.newCodeError(v.Pos(), v.End(), msgNoKwargsOVF)
 		}
 		if len(v.Args) < idx {
-			panic(ctx.newCodeError(v.Pos(), v.End(), msgNoEnoughArgToKwargs))
+			return nil, ctx.newCodeError(v.Pos(), v.End(), msgNoEnoughArgToKwargs)
 		}
 		copy(args, v.Args[:idx])
 		args[idx] = mergeKwargs(ctx, v, fn.params.At(idx).Type())
@@ -919,7 +920,7 @@ func convKwargs(ctx *blockCtx, v *ast.CallExpr, fn *fnType) *ast.CallExpr {
 	}
 	ne := *v
 	ne.Args, ne.Kwargs = args, nil
-	return &ne
+	return &ne, nil
 }
 
 const (
