@@ -3,7 +3,7 @@ func addInt(a, b int) int {
 }
 
 func addFloat(a, b float64) float64 {
-	return a * b
+	return a + b
 }
 
 func add = (

@@ -11,7 +11,7 @@ func addInt(a int, b int) int {
 	return a + b
 }
 func addFloat(a float64, b float64) float64 {
-	return a * b
+	return a + b
 }
 func main() {
 	fmt.Println(addInt(100, 7))
