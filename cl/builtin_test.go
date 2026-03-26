@@ -52,6 +52,38 @@ func TestNonClosure(t *testing.T) {
 	}
 }
 
+func TestConvKwargs1(t *testing.T) {
+	ctx := &blockCtx{
+		pkgCtx: &pkgCtx{},
+	}
+	defer func() {
+		ce, ok := recover().(*gogen.CodeError)
+		if !ok {
+			t.Fatal("convKwargs: not gogen.CodeError")
+		}
+		if ce.Msg != msgNoKwargsOVF {
+			t.Fatal("convKwargs: unexpected error -", ce.Msg)
+		}
+	}()
+	convKwargs(ctx, &ast.CallExpr{Fun: &ast.Ident{}}, &fnType{variadic: true})
+}
+
+func TestConvKwargs2(t *testing.T) {
+	ctx := &blockCtx{
+		pkgCtx: &pkgCtx{},
+	}
+	defer func() {
+		ce, ok := recover().(*gogen.CodeError)
+		if !ok {
+			t.Fatal("convKwargs: not gogen.CodeError")
+		}
+		if ce.Msg != msgNoEnoughArgToKwargs {
+			t.Fatal("convKwargs: unexpected error -", ce.Msg)
+		}
+	}()
+	convKwargs(ctx, &ast.CallExpr{Fun: &ast.Ident{}}, &fnType{size: 2, variadic: true})
+}
+
 func TestLoadExpr(t *testing.T) {
 	var ni nodeInterp
 	if v := ni.LoadExpr(&ast.Ident{Name: "x"}); v != "" {

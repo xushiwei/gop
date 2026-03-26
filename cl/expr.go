@@ -828,7 +828,7 @@ func (p *fnType) initFuncs(base int, funcs []types.Object, typeAsParams bool) {
 				fn := &fnType{}
 				fn.init(base, sig, typeAsParams)
 				p.next = fn
-				p = p.next
+				p = fn
 			}
 		}
 	}
@@ -877,35 +877,16 @@ func compileCallExpr(ctx *blockCtx, lhs int, v *ast.CallExpr, inFlags int) {
 		flags = gogen.InstrFlagEllipsis
 	}
 	pfn := stk.Get(-1)
-	fnt := pfn.Type
 	fn := &fnType{}
-	fn.load(fnt)
-	if len(v.Kwargs) > 0 { // https://github.com/goplus/xgo/issues/2443
-		n := len(v.Args)
-		args := make([]ast.Expr, n+1)
-		if fn.variadic { // has variadic parameter
-			idx := fn.size - 1
-			if idx < 0 {
-				panic(ctx.newCodeError(v.Pos(), v.End(), msgNoKwargsOVF))
-			}
-			if len(v.Args) < idx {
-				panic(ctx.newCodeError(v.Pos(), v.End(), msgNoEnoughArgToKwargs))
-			}
-			copy(args, v.Args[:idx])
-			args[idx] = mergeKwargs(ctx, v, fn.params.At(idx).Type())
-			copy(args[idx+1:], v.Args[idx:])
-		} else {
-			copy(args, v.Args)
-			args[n] = mergeKwargs(ctx, v, fn.arg(n, false))
-		}
-		ne := *v
-		ne.Args, ne.Kwargs = args, nil
-		v = &ne
-	}
+	fn.load(pfn.Type)
 	for fn != nil {
-		if err = compileCallArgs(ctx, lhs, pfn, fn, v, ellipsis, flags); err == nil {
+		nv := v
+		if len(v.Kwargs) > 0 { // https://github.com/goplus/xgo/issues/2443
+			nv = convKwargs(ctx, v, fn)
+		}
+		if err = compileCallArgs(ctx, lhs, pfn, fn, nv, ellipsis, flags); err == nil {
 			if rec := ctx.recorder(); rec != nil {
-				rec.recordCallExpr(ctx, v, fnt)
+				rec.recordCallExpr(ctx, nv, fn.sig)
 			}
 			return
 		}
@@ -916,6 +897,29 @@ func compileCallExpr(ctx *blockCtx, lhs int, v *ast.CallExpr, inFlags int) {
 		return
 	}
 	panic(err)
+}
+
+func convKwargs(ctx *blockCtx, v *ast.CallExpr, fn *fnType) *ast.CallExpr {
+	n := len(v.Args)
+	args := make([]ast.Expr, n+1)
+	if fn.variadic { // has variadic parameter
+		idx := fn.size - 1
+		if idx < 0 {
+			panic(ctx.newCodeError(v.Pos(), v.End(), msgNoKwargsOVF))
+		}
+		if len(v.Args) < idx {
+			panic(ctx.newCodeError(v.Pos(), v.End(), msgNoEnoughArgToKwargs))
+		}
+		copy(args, v.Args[:idx])
+		args[idx] = mergeKwargs(ctx, v, fn.params.At(idx).Type())
+		copy(args[idx+1:], v.Args[idx:])
+	} else {
+		copy(args, v.Args)
+		args[n] = mergeKwargs(ctx, v, fn.arg(n, false))
+	}
+	ne := *v
+	ne.Args, ne.Kwargs = args, nil
+	return &ne
 }
 
 const (
