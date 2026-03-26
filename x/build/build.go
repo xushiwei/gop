@@ -54,10 +54,6 @@ func RegisterClassFileType(ext string, class string, works []*Class, pkgPaths ..
 	}
 }
 
-func init() {
-	RegisterClassFileType(".gmx", "Game", []*Class{{Ext: ".spx", Class: "Sprite"}}, "github.com/goplus/spx", "math")
-}
-
 type Package struct {
 	Fset *token.FileSet
 	Pkg  *gogen.Package
@@ -77,23 +73,16 @@ func (p *Package) ToAst() *goast.File {
 
 func ClassKind(fname string) (isProj, ok bool) {
 	ext := modfile.ClassExt(fname)
-	switch ext {
-	case ".gmx":
-		return true, true
-	case ".spx":
-		return fname == "main.spx", true
-	default:
-		if c, ok := projects[ext]; ok {
-			for _, w := range c.Works {
-				if w.Ext == ext {
-					if ext != c.Ext || fname != "main"+ext {
-						return false, true
-					}
-					break
+	if c, ok := projects[ext]; ok {
+		for _, w := range c.Works {
+			if w.Ext == ext {
+				if ext != c.Ext || fname != "main"+ext {
+					return false, true
 				}
+				break
 			}
-			return true, true
 		}
+		return true, true
 	}
 	return
 }

@@ -66,15 +66,15 @@ func TestProjFile(t *testing.T) {
 	}
 }
 
-func TestSpriteOf(t *testing.T) {
-	proj := &gmxProject{}
-	if getSpxObj(proj, "a") != nil {
-		t.Fatal("spriteOf: not nil?")
+func TestGetWorkClass(t *testing.T) {
+	proj := &classProject{}
+	if getWorkClass(proj, "a") != nil {
+		t.Fatal("getWorkClass: not nil?")
 	}
 }
 
 func TestGetGameClass(t *testing.T) {
-	proj := &gmxProject{
+	proj := &classProject{
 		gameIsPtr:  true,
 		hasMain_:   false,
 		gameClass_: "",
@@ -84,7 +84,7 @@ func TestGetGameClass(t *testing.T) {
 		},
 	}
 	ctx := &pkgCtx{
-		projs: map[string]*gmxProject{".gmx": proj, ".spx": proj},
+		projs: map[string]*classProject{".a": proj, ".b": proj},
 		nproj: 2,
 	}
 	if v := proj.getGameClass(ctx); v != "BarApp" {
@@ -237,25 +237,25 @@ func TestErrParseTypeEmbedName(t *testing.T) {
 	parseTypeEmbedName(&ast.StructType{})
 }
 
-func TestGmxCheckProjs(t *testing.T) {
-	_, multi := gmxCheckProjs(nil, &pkgCtx{
-		projs: map[string]*gmxProject{
+func TestCheckClassProjectsWithMain(t *testing.T) {
+	_, multi := checkClassProjects(nil, &pkgCtx{
+		projs: map[string]*classProject{
 			".a": {hasMain_: true}, ".b": {hasMain_: true},
 		},
 	})
 	if !multi {
-		t.Fatal("gmxCheckProjs: not multi?")
+		t.Fatal("checkClassProjects: not multi?")
 	}
 }
 
-func TestGmxCheckProjs2(t *testing.T) {
-	_, multi := gmxCheckProjs(nil, &pkgCtx{
-		projs: map[string]*gmxProject{
+func TestCheckClassProjectsWithoutMain(t *testing.T) {
+	_, multi := checkClassProjects(nil, &pkgCtx{
+		projs: map[string]*classProject{
 			".a": {}, ".b": {},
 		},
 	})
 	if !multi {
-		t.Fatal("gmxCheckProjs: not multi?")
+		t.Fatal("checkClassProjects: not multi?")
 	}
 }
 
@@ -290,8 +290,8 @@ func TestClassNameAndExt(t *testing.T) {
 	if name != "bar_abc" || clsfile != "bar.abc" || ext != "_yap.gox" {
 		t.Fatal("classNameAndExt:", name, ext)
 	}
-	name, clsfile, ext = ClassNameAndExt("/foo/get-bar_:id.yap")
-	if name != "get_bar_id" || clsfile != "get-bar_:id" || ext != ".yap" {
+	name, clsfile, ext = ClassNameAndExt("/foo/get-bar_:id_app.gox")
+	if name != "get_bar_id" || clsfile != "get-bar_:id" || ext != "_app.gox" {
 		t.Fatal("classNameAndExt:", name, ext)
 	}
 }
@@ -328,10 +328,6 @@ func TestFileClassType(t *testing.T) {
 		{true, true, false, "Abc_test.gox", "caseAbc", true, true},
 		{true, true, false, "main_test.gox", "case_main", true, true},
 
-		{true, false, false, "get.yap", "get", false, true},
-		{true, false, false, "get_p_#id.yap", "get_p_id", false, true},
-		{true, false, true, "main.yap", "AppV2", false, true},
-
 		{true, false, false, "abc_yap.gox", "abc", false, true},
 		{true, false, false, "Abc_yap.gox", "Abc", false, true},
 		{true, false, false, "chan_yap.gox", "_chan", false, true},
@@ -349,11 +345,6 @@ func TestFileClassType(t *testing.T) {
 	}
 	lookupClass := func(ext string) (c *Project, ok bool) {
 		switch ext {
-		case ".yap":
-			return &modfile.Project{
-				Ext: ".yap", Class: "AppV2",
-				Works:    []*modfile.Class{{Ext: ".yap", Class: "Handler"}},
-				PkgPaths: []string{"github.com/goplus/yap"}}, true
 		case "_yap.gox":
 			return &modfile.Project{
 				Ext: "_yap.gox", Class: "App",
@@ -504,22 +495,22 @@ func TestClRangeStmt(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestGetStringConst(t *testing.T) {
-	spx := gogen.PkgRef{Types: types.NewPackage("", "foo")}
-	if v := getStringConst(spx, "unknown"); v != "" {
+	pkg := gogen.PkgRef{Types: types.NewPackage("", "foo")}
+	if v := getStringConst(pkg, "unknown"); v != "" {
 		t.Fatal("getStringConst:", v)
 	}
 }
 
-func TestSpxRef(t *testing.T) {
+func TestClassPkgRef(t *testing.T) {
 	defer func() {
 		if e := recover(); !isError(e, "foo.bar not found") {
-			t.Fatal("TestSpxRef:", e)
+			t.Fatal("TestClassPkgRef:", e)
 		}
 	}()
 	pkg := gogen.PkgRef{
 		Types: types.NewPackage("foo", "foo"),
 	}
-	spxRef(pkg, "bar")
+	classPkgRef(pkg, "bar")
 }
 
 func isError(e any, msg string) bool {
@@ -534,28 +525,28 @@ func isError(e any, msg string) bool {
 	return false
 }
 
-func TestGmxProject(t *testing.T) {
+func TestClassProject(t *testing.T) {
 	pkg := gogen.NewPackage("", "foo", goxConf)
 	ctx := &pkgCtx{
-		projs:   make(map[string]*gmxProject),
-		classes: make(map[*ast.File]*gmxClass),
+		projs:   make(map[string]*classProject),
+		classes: make(map[*ast.File]*classFile),
 	}
-	gmx := loadClass(ctx, pkg, "main.t2gmx", &ast.File{IsProj: true}, &Config{
+	proj := loadClass(ctx, pkg, "main.t2gmx", &ast.File{IsProj: true}, &Config{
 		LookupClass: lookupClass,
 	})
-	scheds := gmx.getScheds(pkg.CB())
+	scheds := proj.getScheds(pkg.CB())
 	if len(scheds) != 2 || scheds[0] == nil || scheds[0] != scheds[1] {
-		t.Fatal("TestGmxProject failed")
+		t.Fatal("TestClassProject failed")
 	}
-	gmx.hasScheds = false
-	if gmx.getScheds(nil) != nil {
-		t.Fatal("TestGmxProject failed: hasScheds?")
+	proj.hasScheds = false
+	if proj.getScheds(nil) != nil {
+		t.Fatal("TestClassProject failed: hasScheds?")
 	}
 
 	func() {
 		defer func() {
 			if e := recover(); e != "class not found: .abcx" {
-				t.Fatal("TestGmxProject failed:", e)
+				t.Fatal("TestClassProject failed:", e)
 			}
 		}()
 		loadClass(nil, pkg, "main.abcx", &ast.File{IsProj: true}, &Config{
@@ -565,7 +556,7 @@ func TestGmxProject(t *testing.T) {
 	func() {
 		defer func() {
 			if e := recover(); e != "multiple project files found: main, main" {
-				t.Fatal("TestGmxProject failed:", e)
+				t.Fatal("TestClassProject failed:", e)
 			}
 		}()
 		loadClass(ctx, pkg, "main.t2gmx", &ast.File{IsProj: true}, &Config{
@@ -574,13 +565,13 @@ func TestGmxProject(t *testing.T) {
 	}()
 }
 
-func TestSpxLookup(t *testing.T) {
+func TestClassPkgLookup(t *testing.T) {
 	defer func() {
 		if e := recover(); e == nil {
-			t.Fatal("TestSpxLookup failed: no error?")
+			t.Fatal("TestClassPkgLookup failed: no error?")
 		}
 	}()
-	spxLookup(nil, "foo")
+	classPkgLookup(nil, "foo")
 }
 
 func lookupClass(ext string) (c *modfile.Project, ok bool) {
@@ -655,7 +646,7 @@ func testPanic(t *testing.T, panicMsg string, doPanic func()) {
 
 func TestClassFileEnd(t *testing.T) {
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, "get.yap", `json {"id": ${id} }`, parser.ParseXGoClass)
+	f, err := parser.ParseFile(fset, "get_app.gox", `json {"id": ${id} }`, parser.ParseXGoClass)
 	if err != nil {
 		t.Fatal(err)
 	}

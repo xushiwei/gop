@@ -343,9 +343,9 @@ func doInitMethods(ld *typeLoader) {
 
 type pkgCtx struct {
 	*nodeInterp
-	nproj    int                    // number of non-test projects
-	projs    map[string]*gmxProject // .gmx => project
-	classes  map[*ast.File]*gmxClass
+	nproj    int                      // number of non-test projects
+	projs    map[string]*classProject // project extension => project
+	classes  map[*ast.File]*classFile
 	overpos  map[string]token.Pos // overload => pos
 	fset     *token.FileSet
 	syms     map[string]loader
@@ -369,7 +369,7 @@ type pkgImp struct {
 
 type blockCtx struct {
 	*pkgCtx
-	proj       *gmxProject
+	proj       *classProject
 	pkg        *gogen.Package
 	cb         *gogen.CodeBuilder
 	imports    map[string]pkgImp
@@ -581,8 +581,8 @@ func NewPackage(pkgPath string, pkg *ast.Package, conf *Config) (p *gogen.Packag
 	ctx := &pkgCtx{
 		fset:       fset,
 		nodeInterp: interp,
-		projs:      make(map[string]*gmxProject),
-		classes:    make(map[*ast.File]*gmxClass),
+		projs:      make(map[string]*classProject),
+		classes:    make(map[*ast.File]*classFile),
 		overpos:    make(map[string]token.Pos),
 		syms:       make(map[string]loader),
 		generics:   make(map[string]bool),
@@ -637,12 +637,12 @@ func NewPackage(pkgPath string, pkg *ast.Package, conf *Config) (p *gogen.Packag
 	})
 
 	for _, f := range sfiles {
-		gmx := f.File
-		if gmx.IsClass && !gmx.IsNormalGox {
+		classFile := f.File
+		if classFile.IsClass && !classFile.IsNormalGox {
 			if debugLoad {
 				log.Println("==> ClassFile", f.path)
 			}
-			loadClass(ctx, p, f.path, gmx, conf)
+			loadClass(ctx, p, f.path, classFile, conf)
 		}
 	}
 
@@ -660,7 +660,7 @@ func NewPackage(pkgPath string, pkg *ast.Package, conf *Config) (p *gogen.Packag
 		preloadXGoFile(p, ctx, f.path, f.File, conf)
 	}
 
-	proj, multi := gmxCheckProjs(p, ctx)
+	proj, multi := checkClassProjects(p, ctx)
 
 	gopSyms := make(map[string]bool) // TODO(xsw): remove this map
 	for name := range ctx.syms {
@@ -802,13 +802,13 @@ func genGoFile(file string, goxTestFile bool) string {
 }
 
 func preloadXGoFile(p *gogen.Package, ctx *blockCtx, file string, f *ast.File, conf *Config) {
-	var proj *gmxProject
-	var c *gmxClass
+	var proj *classProject
+	var c *classFile
 	var classType, gameClass string
 	var testType string
 	var baseTypeName string
 	var baseType types.Type
-	var sp *spxObj
+	var work *workClass
 	var goxTestFile bool
 	var parent = ctx.pkgCtx
 	if f.IsClass {
@@ -840,8 +840,8 @@ func preloadXGoFile(p *gogen.Package, ctx *blockCtx, file string, f *ast.File, c
 					baseType = types.NewPointer(baseType)
 				}
 			} else {
-				sp = c.sp
-				o := sp.obj
+				work = c.work
+				o := work.obj
 				ctx.baseClass = o
 				baseTypeName, baseType = o.Name(), o.Type()
 			}
@@ -886,7 +886,7 @@ func preloadXGoFile(p *gogen.Package, ctx *blockCtx, file string, f *ast.File, c
 					flds = append(flds, types.NewField(pos, pkg, baseTypeName, baseType, true))
 					tags = append(tags, "")
 					chk.chkRedecl(ctx, baseTypeName, pos, end, fieldKindClass)
-					if sp != nil { // for work class
+					if work != nil { // for work class
 						if !goxTestFile && gameClass != "" { // has project class
 							typ := toType(ctx, &ast.Ident{Name: gameClass})
 							getUnderlying(ctx, typ) // ensure type is loaded
@@ -972,10 +972,10 @@ func preloadXGoFile(p *gogen.Package, ctx *blockCtx, file string, f *ast.File, c
 	}
 
 	preloadFile(p, ctx, f, goFile, !conf.Outline)
-	if sp != nil && sp.feats != 0 {
-		spfeats := sp.feats
+	if work != nil && work.feats != 0 {
+		workFeats := work.feats
 		ld := getTypeLoader(parent, parent.syms, token.NoPos, token.NoPos, classType)
-		if (spfeats & spriteClassfname) != 0 { // Classfname() string
+		if (workFeats & workClassHasName) != 0 { // Classfname() string
 			ld.methods = append(ld.methods, func() {
 				old, _ := p.SetCurFile(goFile, true)
 				defer p.RestoreCurFile(old)
@@ -983,19 +983,19 @@ func preloadXGoFile(p *gogen.Package, ctx *blockCtx, file string, f *ast.File, c
 				genClassfname(ctx, c)
 			})
 		}
-		if (spfeats & spriteClassclone) != 0 { // Classclone() clonetype
+		if (workFeats & workClassHasClone) != 0 { // Classclone() clonetype
 			ld.methods = append(ld.methods, func() {
 				old, _ := p.SetCurFile(goFile, true)
 				defer p.RestoreCurFile(old)
 				doInitType(ld)
-				genClassclone(ctx, sp.clone)
+				genClassclone(ctx, work.clone)
 			})
 		}
 	}
 	if goxTestFile {
 		parent.inits = append(parent.inits, func() {
 			old, _ := p.SetCurFile(testingGoFile, true)
-			gmxTestFunc(p, testType, f.IsProj)
+			genClassTestFunc(p, testType, f.IsProj)
 			p.RestoreCurFile(old)
 		})
 	}
@@ -1023,7 +1023,7 @@ func preloadFile(p *gogen.Package, ctx *blockCtx, f *ast.File, goFile string, ge
 	defer p.RestoreCurFile(old)
 
 	preloadFuncDecl := func(d *ast.FuncDecl) {
-		if ctx.classRecv != nil { // in class file (.spx/.gmx)
+		if ctx.classRecv != nil { // in a class file with an implicit receiver
 			if recv := d.Recv; recv == nil || len(recv.List) == 0 {
 				d.Recv = ctx.classRecv
 				d.IsClass = true
@@ -1215,7 +1215,7 @@ func preloadFile(p *gogen.Package, ctx *blockCtx, f *ast.File, goFile string, ge
 
 		case *ast.OverloadFuncDecl:
 			var recv *ast.Ident
-			if ctx.classRecv != nil { // in class file (.spx/.gmx)
+			if ctx.classRecv != nil { // in a class file with an implicit receiver
 				if recv := d.Recv; recv == nil || len(recv.List) == 0 {
 					d.Recv = &ast.FieldList{
 						List: []*ast.Field{

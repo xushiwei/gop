@@ -151,7 +151,7 @@ func (w *walker) walk(path string, d fs.DirEntry, err error) error {
 					switch ext {
 					case ".go", ".xgo", ".gop":
 						ok = true
-					case ".gox", ".spx", ".gmx":
+					case ".gox":
 						ok, class = true, true
 					default:
 						class = mod.IsClass(ext)
@@ -164,7 +164,7 @@ func (w *walker) walk(path string, d fs.DirEntry, err error) error {
 					switch ext {
 					case ".go", ".xgo", ".gop":
 						ok = true
-					case ".gox", ".spx", ".gmx":
+					case ".gox":
 						ok, class = true, true
 					}
 					return
