@@ -92,7 +92,7 @@ type parser struct {
 	syncPos token.Pos // last synchronization position
 	syncCnt int       // number of parser.advance calls without progress
 
-	classVarDecl token.Pos // first top-level var declaration in a classfile
+	classFields *ast.GenDecl // first top-level var declaration in a classfile
 
 	// Non-syntactic parser control
 	exprLev int  // < 0: in control clause, >= 0: in expression
@@ -4160,13 +4160,6 @@ func (p *parser) parseGenDecl(keyword token.Token, f parseSpecFunction) *ast.Gen
 	}
 	doc := p.leadComment
 	pos := p.expect(keyword)
-	if keyword == token.VAR && p.inClassFile() && p.topScope == p.pkgScope {
-		if p.classVarDecl.IsValid() {
-			p.error(pos, "multiple top-level var declarations in classfile")
-		} else {
-			p.classVarDecl = pos
-		}
-	}
 	var lparen, rparen token.Pos
 	var list []ast.Spec
 	if p.tok == token.LPAREN {
@@ -4181,7 +4174,7 @@ func (p *parser) parseGenDecl(keyword token.Token, f parseSpecFunction) *ast.Gen
 		list = append(list, f(nil, keyword, 0))
 	}
 
-	return &ast.GenDecl{
+	ret := &ast.GenDecl{
 		Doc:    doc,
 		TokPos: pos,
 		Tok:    keyword,
@@ -4189,6 +4182,12 @@ func (p *parser) parseGenDecl(keyword token.Token, f parseSpecFunction) *ast.Gen
 		Specs:  list,
 		Rparen: rparen,
 	}
+	if keyword == token.VAR && p.inClassFile() && p.topScope == p.pkgScope {
+		if p.classFields == nil {
+			p.classFields = ret
+		}
+	}
+	return ret
 }
 
 func isOverloadOp(tok token.Token) bool {
@@ -4590,6 +4589,7 @@ func (p *parser) parseFile() *ast.File {
 		Decls:       decls,
 		Imports:     p.imports,
 		Comments:    p.comments,
+		ClassFields: p.classFields,
 		ShadowEntry: shadowEntry,
 		NoPkgDecl:   noPkgDecl,
 	}

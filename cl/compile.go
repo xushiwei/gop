@@ -986,7 +986,7 @@ func preloadXGoFile(p *gogen.Package, ctx *blockCtx, file string, f *ast.File, c
 			syms := parent.syms
 			pos := f.Pos()
 			end := f.End()
-			ctx.classDecl = f.ClassFieldsDecl()
+			ctx.classDecl = f.ClassFields
 			ld := getTypeLoader(parent, syms, f, classType)
 			ld.typ = func() {
 				if debugLoad {
@@ -1148,7 +1148,6 @@ retry:
 
 func preloadFile(p *gogen.Package, ctx *blockCtx, f *ast.File, goFile string, genFnBody bool) {
 	parent := ctx.pkgCtx
-	classDecl := ctx.classDecl
 	syms := parent.syms
 	old, _ := p.SetCurFile(goFile, true)
 	defer p.RestoreCurFile(old)
@@ -1343,7 +1342,10 @@ func preloadFile(p *gogen.Package, ctx *blockCtx, f *ast.File, goFile string, ge
 			case token.CONST:
 				preloadConst(d.Specs, nil)
 			case token.VAR:
-				if d == classDecl { // skip class fields
+				if ctx.isClass {
+					if d != ctx.classDecl {
+						ctx.handleErrorf(d.Pos(), d.End(), "multiple top-level var declarations in classfile")
+					}
 					continue
 				}
 				for _, spec := range d.Specs {

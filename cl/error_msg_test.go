@@ -1004,6 +1004,17 @@ println "hello"
 `)
 }
 
+func TestErrClassFields(t *testing.T) {
+	codeErrorTestEx(t, "main", "foo.gox",
+		`foo.gox:6:1: multiple top-level var declarations in classfile`, `
+var (
+	x int
+)
+
+var y int
+`)
+}
+
 func TestErrVarInFunc(t *testing.T) {
 	codeErrorTest(t, `bar.xgo:6:10: not enough arguments in call to set
 	have (untyped string)

@@ -726,6 +726,7 @@ type File struct {
 	Comments    []*CommentGroup // list of all comments in the source file
 	Code        []byte
 	ShadowEntry *FuncDecl // indicate the module entry point.
+	ClassFields *GenDecl  // class fields declaration (only available in classfile)
 	NoPkgDecl   bool      // no `package xxx` declaration
 	IsClass     bool      // is a classfile (including normal .gox file)
 	IsProj      bool      // is a project classfile
@@ -740,22 +741,6 @@ func (f *File) HasShadowEntry() bool {
 // HasPkgDecl checks if `package xxx` exists or not.
 func (f *File) HasPkgDecl() bool {
 	return f.Package != token.NoPos
-}
-
-// ClassFieldsDecl returns the class fields declaration.
-func (f *File) ClassFieldsDecl() *GenDecl {
-	if f.IsClass {
-		for _, decl := range f.Decls {
-			if g, ok := decl.(*GenDecl); ok {
-				if g.Tok == token.VAR {
-					return g
-				}
-				continue
-			}
-			break
-		}
-	}
-	return nil
 }
 
 // Pos returns position of first character belonging to the node.

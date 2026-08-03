@@ -242,12 +242,6 @@ func TestErrInFunc(t *testing.T) {
 
 func TestClassErrCode(t *testing.T) {
 	testClassErrCode(t, `var (
-	x int
-)
-
-var y int
-`, `/foo/bar.gox:5:1: multiple top-level var declarations in classfile`, ``)
-	testClassErrCode(t, `var (
 	A,B
 	v int
 )
