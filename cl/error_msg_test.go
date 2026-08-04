@@ -1015,7 +1015,7 @@ var y int
 `)
 
 	codeErrorTestEx(t, "main", "foo.gox",
-		`foo.gox:4:1: var declarations in classfile must be declared before functions`, `
+		`foo.gox:4:1: class fields declaration must be declared before functions`, `
 func f() {}
 
 var y int
