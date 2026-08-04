@@ -92,11 +92,12 @@ type parser struct {
 	syncPos token.Pos // last synchronization position
 	syncCnt int       // number of parser.advance calls without progress
 
-	classFields *ast.GenDecl // first top-level var declaration in a classfile
-
 	// Non-syntactic parser control
 	exprLev int  // < 0: in control clause, >= 0: in expression
 	inRHS   bool // if set, the parser is parsing a rhs expression
+
+	fnExists    bool
+	classFields *ast.GenDecl // first top-level var declaration in a classfile
 
 	// Ordinary identifier scopes
 	pkgScope   *ast.Scope        // pkgScope.Outer == nil
@@ -4182,7 +4183,7 @@ func (p *parser) parseGenDecl(keyword token.Token, f parseSpecFunction) *ast.Gen
 		Specs:  list,
 		Rparen: rparen,
 	}
-	if keyword == token.VAR && p.inClassFile() && p.topScope == p.pkgScope {
+	if keyword == token.VAR && p.inClassFile() && p.topScope == p.pkgScope && !p.fnExists {
 		if p.classFields == nil {
 			p.classFields = ret
 		}
@@ -4442,6 +4443,7 @@ func (p *parser) parseDecl(sync map[token.Token]bool) ast.Decl {
 			if p.errors.Len() != 0 {
 				p.advance(sync)
 			}
+			p.fnExists = true
 			return decl
 		}
 		return p.parseGlobalStmts(sync, pos, &ast.ExprStmt{X: call})
