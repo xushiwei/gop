@@ -501,12 +501,13 @@ type blockCtx struct {
 	pystr_     gogen.Ref
 	relBaseDir string
 
-	classDecl *ast.GenDecl   // available when isClass
 	classRecv *ast.FieldList // available when isClass
 	baseClass types.Object   // available when isClass
 
 	fileScope *types.Scope // available when isXGoFile
 	rec       *goxRecorder
+
+	allowClassFields bool // available when isClass
 
 	fileLine  bool
 	isClass   bool
@@ -986,7 +987,7 @@ func preloadXGoFile(p *gogen.Package, ctx *blockCtx, file string, f *ast.File, c
 			syms := parent.syms
 			pos := f.Pos()
 			end := f.End()
-			ctx.classDecl = f.ClassFields
+			ctx.allowClassFields = true
 			ld := getTypeLoader(parent, syms, f, classType)
 			ld.typ = func() {
 				if debugLoad {
@@ -1030,7 +1031,8 @@ func preloadXGoFile(p *gogen.Package, ctx *blockCtx, file string, f *ast.File, c
 						}
 					}
 					rec := ctx.recorder()
-					if classDecl := ctx.classDecl; classDecl != nil {
+					if ctx.allowClassFields && f.ClassFields != nil {
+						var classDecl = f.ClassFields
 						var spec *ast.ValueSpec
 						recvType := types.NewPointer(decl.Type())
 						recv := types.NewParam(token.NoPos, pkg, "this", recvType)
@@ -1343,8 +1345,12 @@ func preloadFile(p *gogen.Package, ctx *blockCtx, f *ast.File, goFile string, ge
 				preloadConst(d.Specs, nil)
 			case token.VAR:
 				if ctx.isClass {
-					if d != ctx.classDecl {
-						ctx.handleErrorf(d.Pos(), d.End(), "multiple top-level var declarations in classfile")
+					if !ctx.allowClassFields || d != f.ClassFields {
+						if f.ClassFields == nil {
+							ctx.handleErrorf(d.Pos(), d.End(), "var declarations in classfile must be declared before functions")
+						} else {
+							ctx.handleErrorf(d.Pos(), d.End(), "multiple top-level var declarations in classfile")
+						}
 					}
 					continue
 				}

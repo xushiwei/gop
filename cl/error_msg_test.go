@@ -1013,6 +1013,13 @@ var (
 
 var y int
 `)
+
+	codeErrorTestEx(t, "main", "foo.gox",
+		`foo.gox:4:1: var declarations in classfile must be declared before functions`, `
+func f() {}
+
+var y int
+`)
 }
 
 func TestErrVarInFunc(t *testing.T) {
