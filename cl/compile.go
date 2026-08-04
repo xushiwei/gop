@@ -1347,7 +1347,7 @@ func preloadFile(p *gogen.Package, ctx *blockCtx, f *ast.File, goFile string, ge
 				if ctx.isClass {
 					if !ctx.allowClassFields || d != f.ClassFields {
 						if f.ClassFields == nil {
-							ctx.handleErrorf(d.Pos(), d.End(), "var declarations in classfile must be declared before functions")
+							ctx.handleErrorf(d.Pos(), d.End(), "class fields declaration must be declared before functions")
 						} else {
 							ctx.handleErrorf(d.Pos(), d.End(), "multiple top-level var declarations in classfile")
 						}
