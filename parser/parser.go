@@ -96,8 +96,8 @@ type parser struct {
 	exprLev int  // < 0: in control clause, >= 0: in expression
 	inRHS   bool // if set, the parser is parsing a rhs expression
 
-	fnExists    bool
-	classFields *ast.GenDecl // first top-level var declaration in a classfile
+	fnExists    bool         // set once a top-level func decl has been parsed (classfile var decls must precede functions)
+	classFields *ast.GenDecl // first top-level var declaration in a classfile, only if it precedes all functions
 
 	// Ordinary identifier scopes
 	pkgScope   *ast.Scope        // pkgScope.Outer == nil
