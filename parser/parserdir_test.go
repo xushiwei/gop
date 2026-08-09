@@ -78,7 +78,7 @@ func TestParseFiles(t *testing.T) {
 
 func TestIparseFileInvalidSrc(t *testing.T) {
 	fset := token.NewFileSet()
-	if _, err := parseFile(fset, "/foo/bar/not-exists", 1, PackageClauseOnly); err != stream.ErrInvalidSource {
+	if _, err := parseFile(fset, "/foo/bar/not-exists", 1, PackageClauseOnly, nil); err != stream.ErrInvalidSource {
 		t.Fatal("ParseFile failed: not errInvalidSource?")
 	}
 }
@@ -89,7 +89,7 @@ func TestIparseFileNoFset(t *testing.T) {
 			t.Fatal("ParseFile failed: no error?")
 		}
 	}()
-	parseFile(nil, "/foo/bar/not-exists", nil, PackageClauseOnly)
+	parseFile(nil, "/foo/bar/not-exists", nil, PackageClauseOnly, nil)
 }
 
 func TestParseDir(t *testing.T) {
@@ -260,7 +260,8 @@ func TestParseEntry2(t *testing.T) {
 		if strings.HasSuffix(fname, "_yap.gox") {
 			return true, true
 		}
-		return defaultClassKind(fname)
+		_, isProj, ok = defaultClassInfo(fname)
+		return
 	}
 	t.Run("_yap.gox file", func(t *testing.T) {
 		f, err := ParseEntry(fset, "./functype_yap.gox", src, conf)

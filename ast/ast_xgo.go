@@ -537,6 +537,7 @@ type LambdaExpr2 struct {
 	Rarrow      token.Pos
 	Body        *BlockStmt
 	LhsHasParen bool
+	AutoLambda  bool
 }
 
 // Pos - position of first character belonging to the node.

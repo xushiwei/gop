@@ -99,6 +99,8 @@ type parser struct {
 	fnExists    bool         // set once a top-level func decl has been parsed (classfile var decls must precede functions)
 	classFields *ast.GenDecl // first top-level var declaration in a classfile, only if it precedes all functions
 
+	autoLambdas map[string]int // command => number of parameters
+
 	// Ordinary identifier scopes
 	pkgScope   *ast.Scope        // pkgScope.Outer == nil
 	topScope   *ast.Scope        // top-most scope; may be pkgScope
@@ -111,7 +113,7 @@ type parser struct {
 	targetStack [][]*ast.Ident // stack of unresolved labels
 }
 
-func (p *parser) init(fset *token.FileSet, filename string, src []byte, mode Mode) {
+func (p *parser) init(fset *token.FileSet, filename string, src []byte, mode Mode, autoLambdas map[string]int) {
 	p.file = fset.AddFile(filename, -1, len(src))
 	var m scanner.Mode
 	if mode&ParseComments != 0 {
@@ -122,6 +124,7 @@ func (p *parser) init(fset *token.FileSet, filename string, src []byte, mode Mod
 
 	p.mode = mode
 	p.trace = mode&Trace != 0 // for convenience (p.trace is used frequently)
+	p.autoLambdas = autoLambdas
 	p.next()
 }
 
