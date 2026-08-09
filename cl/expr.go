@@ -1264,7 +1264,7 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 		t, varg := fn.argVar(i, ellipsis)
 		autoclosure := varg != nil && strings.HasPrefix(varg.Name(), "__xgo_autoclosure_")
 		if autoclosure {
-			sig, ok := t.(*types.Signature)
+			sig, ok := getUnderlying(ctx, t).(*types.Signature)
 			if !ok || sig.Params().Len() != 0 || sig.Results().Len() != 1 {
 				return ctx.newCodeErrorf(arg.Pos(), arg.End(), "autoclosure parameter must have an underlying type of func() T, got %v", t)
 			}
@@ -1331,7 +1331,9 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 			compileExpr(ctx, 1, arg)
 		}
 		if autoclosure {
-			cb.ConvertToClosure()
+			if err = cb.ConvertToClosure(t); err != nil {
+				return
+			}
 		}
 	}
 	if needInferFunc {

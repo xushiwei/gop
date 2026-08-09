@@ -946,6 +946,13 @@ func RepeatUntil(__xgo_autoclosure_cond bool, body func()) {
 
 repeatUntil false, => {}
 `)
+
+	codeErrorTest(t, `bar.xgo:5:13: cannot use 1 (type untyped int) as type bool in autoclosure`, `
+func RepeatUntil(__xgo_autoclosure_cond func() bool, body func()) {
+}
+
+repeatUntil 1, => {}
+`)
 }
 
 func TestErrAutoProperty(t *testing.T) {
