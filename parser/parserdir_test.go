@@ -106,7 +106,19 @@ func testFrom(t *testing.T, pkgDir, sel string, exclude Mode) {
 	t.Helper()
 	log.Println("Parsing", pkgDir)
 	fset := token.NewFileSet()
-	pkgs, err := ParseDir(fset, pkgDir, nil, (Trace|ParseComments|ParseGoAsGoPlus)&^exclude)
+	pkgs, err := ParseDirEx(fset, pkgDir, Config{
+		ClassInfo: func(fname string) (autoLambdas map[string]int, isProj, ok bool) {
+			if strings.HasSuffix(fname, ".spx") {
+				autoLambdas, ok = map[string]int{
+					"times":       1,
+					"repeatUntil": 1,
+					"forEver":     0,
+				}, true
+			}
+			return
+		},
+		Mode: (Trace | ParseComments | ParseGoAsGoPlus) &^ exclude,
+	})
 	if err != nil || len(pkgs) != 1 {
 		if errs, ok := err.(scanner.ErrorList); ok {
 			for _, e := range errs {

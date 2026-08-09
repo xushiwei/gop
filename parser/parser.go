@@ -99,7 +99,7 @@ type parser struct {
 	fnExists    bool         // set once a top-level func decl has been parsed (classfile var decls must precede functions)
 	classFields *ast.GenDecl // first top-level var declaration in a classfile, only if it precedes all functions
 
-	autoLambdas map[string]int // command => number of parameters
+	autoLambdas map[string]int // command => number of parameters before auto lambda
 
 	// Ordinary identifier scopes
 	pkgScope   *ast.Scope        // pkgScope.Outer == nil
@@ -2315,7 +2315,7 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	if p.trace {
 		defer un(trace(p, "CallOrConversion"))
 	}
-	var lparen, rparen token.Pos
+	var lparen token.Pos
 	var endTok token.Token
 	if isCmd {
 		endTok = token.SEMICOLON
@@ -2323,11 +2323,23 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 		lparen, endTok = p.expect(token.LPAREN), token.RPAREN
 	}
 	p.exprLev++
+
 	var args []ast.Expr
 	var kwargs []*ast.KwargExpr
 	var ellipsis token.Pos
-	for p.tok != endTok && p.tok != token.EOF && !ellipsis.IsValid() {
-		flags := flagAllowKwargExpr
+
+	var flags = flagAllowKwargExpr
+	var autoLambda bool
+	if isCmd { // only command calls can have auto lambda
+		if f, ok := fun.(*ast.Ident); ok {
+			if _, autoLambda = p.autoLambdas[f.Name]; autoLambda {
+				endTok = token.LBRACE
+				flags = 0 // disable kwarg exprs for auto lambda
+			}
+		}
+	}
+
+	for p.tok != endTok && p.tok != token.EOF && ellipsis == token.NoPos {
 		expr, exprKind := p.parseRHSOrTypeEx(flags)
 		if exprKind == exprKwarg {
 			kwargs = append(kwargs, expr.(*ast.KwargExpr))
@@ -2349,11 +2361,20 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 		}
 		p.next()
 	}
+
 	p.exprLev--
-	var noParenEnd token.Pos
+	var rparen, noParenEnd token.Pos
 	if isCmd {
 		noParenEnd = p.pos
-	} else if rparen == token.NoPos {
+		if autoLambda {
+			body := p.parseBlockStmt()
+			args = append(args, &ast.LambdaExpr2{
+				First:      body.Lbrace,
+				Body:       body,
+				AutoLambda: true,
+			})
+		}
+	} else {
 		rparen = p.expectClosing(token.RPAREN, "argument list")
 	}
 	if debugParseOutput {

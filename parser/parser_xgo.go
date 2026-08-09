@@ -85,7 +85,7 @@ func ParseDir(fset *token.FileSet, path string, filter func(fs.FileInfo) bool, m
 }
 
 type Config struct {
-	ClassKind func(fname string) (isProj, ok bool)
+	ClassKind func(fname string) (isProj, ok bool) // Deprecated: use ClassInfo instead.
 	ClassInfo func(fname string) (autoLambdas map[string]int, isProj, ok bool)
 	Filter    func(fs.FileInfo) bool
 	Mode      Mode
