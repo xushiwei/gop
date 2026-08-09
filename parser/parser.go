@@ -2328,17 +2328,21 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	var kwargs []*ast.KwargExpr
 	var ellipsis token.Pos
 
-	var flags = flagAllowKwargExpr
-	var autoLambda bool
-	if isCmd { // only command calls can have auto lambda
+	flags := flagAllowKwargExpr
+	autoLambda := -1 // -1 means no auto lambda
+	if isCmd {       // only command calls can have auto lambda
 		if f, ok := fun.(*ast.Ident); ok {
-			if _, autoLambda = p.autoLambdas[f.Name]; autoLambda {
+			if v, ok := p.autoLambdas[f.Name]; ok {
 				endTok = token.LBRACE
+				autoLambda = v
 				flags = 0 // disable kwarg exprs for auto lambda
 			}
 		}
 	}
 
+	if debugParseOutput {
+		log.Printf("autoLambda: %v\n", autoLambda)
+	}
 	for p.tok != endTok && p.tok != token.EOF && ellipsis == token.NoPos {
 		expr, exprKind := p.parseRHSOrTypeEx(flags)
 		if exprKind == exprKwarg {
@@ -2348,6 +2352,10 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 				p.error(expr.Pos(), "positional argument follows keyword argument")
 			}
 			args = append(args, expr) // builtins may expect a type: make(some type, ...)
+			autoLambda--
+			if autoLambda == -1 {
+				break
+			}
 			if p.tok == token.ELLIPSIS {
 				ellipsis = p.pos
 				p.next()
@@ -2366,7 +2374,7 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	var rparen, noParenEnd token.Pos
 	if isCmd {
 		noParenEnd = p.pos
-		if autoLambda {
+		if autoLambda == 0 {
 			body := p.parseBlockStmt()
 			args = append(args, &ast.LambdaExpr2{
 				First:      body.Lbrace,

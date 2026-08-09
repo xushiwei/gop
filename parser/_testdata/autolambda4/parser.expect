@@ -1,0 +1,36 @@
+package main
+
+file in.spx
+noEntrypoint
+ast.FuncDecl:
+  Name:
+    ast.Ident:
+      Name: main
+  Type:
+    ast.FuncType:
+      Params:
+        ast.FieldList:
+  Body:
+    ast.BlockStmt:
+      List:
+        ast.ExprStmt:
+          X:
+            ast.CallExpr:
+              Fun:
+                ast.Ident:
+                  Name: forEver
+              Args:
+                ast.LambdaExpr2:
+                  Body:
+                    ast.BlockStmt:
+                      List:
+                        ast.ExprStmt:
+                          X:
+                            ast.CallExpr:
+                              Fun:
+                                ast.Ident:
+                                  Name: echo
+                              Args:
+                                ast.BasicLit:
+                                  Kind: STRING
+                                  Value: "Hi"
