@@ -1,6 +1,6 @@
 package main
 
-file Rect.gox
+file Rect.gsh
 ast.GenDecl:
   Tok: var
   Specs:

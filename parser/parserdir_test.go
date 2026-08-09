@@ -114,8 +114,9 @@ func testFrom(t *testing.T, pkgDir, sel string, exclude Mode) {
 					"repeatUntil": 1,
 					"forEver":     0,
 				}, true
+				return
 			}
-			return
+			return defaultClassInfo(fname)
 		},
 		Mode: (Trace | ParseComments | ParseGoAsGoPlus) &^ exclude,
 	})

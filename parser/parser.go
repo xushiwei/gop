@@ -2338,9 +2338,6 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 		}
 	}
 
-	if debugParseOutput {
-		log.Printf("autoLambda: %v\n", autoLambda)
-	}
 	for p.tok != endTok && p.tok != token.EOF && ellipsis == token.NoPos {
 		if autoLambda > 0 {
 			args = append(args, p.parseRHSOrType())
