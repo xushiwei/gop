@@ -812,18 +812,24 @@ type fnType struct {
 	typeAsParams bool
 }
 
-func (p *fnType) arg(i int, ellipsis bool) types.Type {
+func (p *fnType) argVar(i int, ellipsis bool) (types.Type, *types.Var) {
 	if i+p.base < p.size {
-		return p.params.At(i + p.base).Type()
+		v := p.params.At(i + p.base)
+		return v.Type(), v
 	}
 	if p.variadic {
 		t := p.params.At(p.size).Type()
 		if ellipsis {
-			return t
+			return t, nil
 		}
-		return t.(*types.Slice).Elem()
+		return t.(*types.Slice).Elem(), nil
 	}
-	return nil
+	return nil, nil
+}
+
+func (p *fnType) arg(i int, ellipsis bool) types.Type {
+	t, _ := p.argVar(i, ellipsis)
+	return t
 }
 
 func (p *fnType) init(base int, t *types.Signature, typeAsParams bool) {
@@ -1255,7 +1261,15 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 
 	var needInferFunc bool
 	for i, arg := range vargs {
-		t := fn.arg(i, ellipsis)
+		t, varg := fn.argVar(i, ellipsis)
+		autoclosure := varg != nil && strings.HasPrefix(varg.Name(), "__xgo_autoclosure_")
+		if autoclosure {
+			sig, ok := t.(*types.Signature)
+			if !ok || sig.Params().Len() != 0 || sig.Results().Len() != 1 {
+				return ctx.newCodeErrorf(arg.Pos(), arg.End(), "autoclosure parameter must have an underlying type of func() T, got %v", t)
+			}
+			t = sig.Results().At(0).Type()
+		}
 		switch expr := arg.(type) {
 		case *ast.LambdaExpr:
 			if fn.typeparam {
@@ -1315,11 +1329,9 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 			compileNumberUnitLit(ctx, expr, t)
 		default:
 			compileExpr(ctx, 1, arg)
-			if sigParamLen(t) == 0 {
-				if nonClosure(cb.Get(-1).Type) {
-					cb.ConvertToClosure()
-				}
-			}
+		}
+		if autoclosure {
+			cb.ConvertToClosure()
 		}
 	}
 	if needInferFunc {
@@ -1370,34 +1382,6 @@ retry:
 		to = " to " + ctx.LoadExpr(toNode)
 	}
 	return nil, ctx.newCodeErrorf(lambda.Pos(), lambda.End(), "cannot use lambda literal as type %v in %v%v", ftyp, flag, to)
-}
-
-func sigParamLen(typ types.Type) int {
-retry:
-	switch t := typ.(type) {
-	case *types.Signature:
-		return t.Params().Len()
-	case *types.Named:
-		typ = t.Underlying()
-		goto retry
-	}
-	return -1
-}
-
-func nonClosure(typ types.Type) bool {
-retry:
-	switch t := typ.(type) {
-	case *types.Signature:
-		return false
-	case *types.Basic:
-		if t.Kind() == types.UntypedNil {
-			return false
-		}
-	case *types.Named:
-		typ = t.Underlying()
-		goto retry
-	}
-	return true
 }
 
 func compileLambda(ctx *blockCtx, lambda ast.Expr, sig *types.Signature) {
