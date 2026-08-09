@@ -939,6 +939,15 @@ switch n.(type) {
 `)
 }
 
+func TestErrAutoClosure(t *testing.T) {
+	codeErrorTest(t, `bar.xgo:5:13: autoclosure parameter must have an underlying type of func() T, got bool`, `
+func RepeatUntil(__xgo_autoclosure_cond bool, body func()) {
+}
+
+repeatUntil false, => {}
+`)
+}
+
 func TestErrAutoProperty(t *testing.T) {
 	codeErrorTest(t, `bar.xgo:4:11: cannot refer to unexported name fmt.println`, `
 import "fmt"

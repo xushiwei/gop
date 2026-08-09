@@ -47,13 +47,6 @@ func TestEmbeddedFieldCast(t *testing.T) {
 	embeddedFieldCast(o, nil, nil, visitedT{})
 }
 
-func TestNonClosure(t *testing.T) {
-	tn := types.NewTypeName(0, nil, "a", nil)
-	if !nonClosure(types.NewNamed(tn, types.Typ[types.Int], nil)) {
-		t.Fatal("nonClosure")
-	}
-}
-
 func TestConvKwargs1(t *testing.T) {
 	ctx := &blockCtx{
 		pkgCtx: &pkgCtx{},
