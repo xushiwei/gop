@@ -2328,14 +2328,12 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	var kwargs []*ast.KwargExpr
 	var ellipsis token.Pos
 
-	flags := flagAllowKwargExpr
-	autoLambda := -1 // -1 means no auto lambda
-	if isCmd {       // only command calls can have auto lambda
+	var autoLambda int
+	if isCmd { // only command calls allow auto lambda
 		if f, ok := fun.(*ast.Ident); ok {
 			if v, ok := p.autoLambdas[f.Name]; ok {
+				autoLambda = v + 1
 				endTok = token.LBRACE
-				autoLambda = v
-				flags = 0 // disable kwarg exprs for auto lambda
 			}
 		}
 	}
@@ -2344,21 +2342,25 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 		log.Printf("autoLambda: %v\n", autoLambda)
 	}
 	for p.tok != endTok && p.tok != token.EOF && ellipsis == token.NoPos {
-		expr, exprKind := p.parseRHSOrTypeEx(flags)
-		if exprKind == exprKwarg {
-			kwargs = append(kwargs, expr.(*ast.KwargExpr))
-		} else {
-			if len(kwargs) > 0 {
-				p.error(expr.Pos(), "positional argument follows keyword argument")
-			}
-			args = append(args, expr) // builtins may expect a type: make(some type, ...)
+		if autoLambda > 0 {
+			args = append(args, p.parseRHSOrType())
 			autoLambda--
-			if autoLambda == -1 {
+			if autoLambda == 0 {
 				break
 			}
-			if p.tok == token.ELLIPSIS {
-				ellipsis = p.pos
-				p.next()
+		} else {
+			expr, exprKind := p.parseRHSOrTypeEx(flagAllowKwargExpr)
+			if exprKind == exprKwarg {
+				kwargs = append(kwargs, expr.(*ast.KwargExpr))
+			} else {
+				if len(kwargs) > 0 {
+					p.error(expr.Pos(), "positional argument follows keyword argument")
+				}
+				args = append(args, expr) // builtins may expect a type: make(some type, ...)
+				if p.tok == token.ELLIPSIS {
+					ellipsis = p.pos
+					p.next()
+				}
 			}
 		}
 		if isCmd && p.tok == token.RBRACE {
@@ -2374,7 +2376,7 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	var rparen, noParenEnd token.Pos
 	if isCmd {
 		noParenEnd = p.pos
-		if autoLambda == 0 {
+		if autoLambda == 1 {
 			body := p.parseBlockStmt()
 			args = append(args, &ast.LambdaExpr2{
 				First:      body.Lbrace,
