@@ -99,6 +99,8 @@ type parser struct {
 	fnExists    bool         // set once a top-level func decl has been parsed (classfile var decls must precede functions)
 	classFields *ast.GenDecl // first top-level var declaration in a classfile, only if it precedes all functions
 
+	autoLambdas map[string]int // command => number of parameters before auto lambda
+
 	// Ordinary identifier scopes
 	pkgScope   *ast.Scope        // pkgScope.Outer == nil
 	topScope   *ast.Scope        // top-most scope; may be pkgScope
@@ -111,7 +113,7 @@ type parser struct {
 	targetStack [][]*ast.Ident // stack of unresolved labels
 }
 
-func (p *parser) init(fset *token.FileSet, filename string, src []byte, mode Mode) {
+func (p *parser) init(fset *token.FileSet, filename string, src []byte, mode Mode, autoLambdas map[string]int) {
 	p.file = fset.AddFile(filename, -1, len(src))
 	var m scanner.Mode
 	if mode&ParseComments != 0 {
@@ -122,6 +124,7 @@ func (p *parser) init(fset *token.FileSet, filename string, src []byte, mode Mod
 
 	p.mode = mode
 	p.trace = mode&Trace != 0 // for convenience (p.trace is used frequently)
+	p.autoLambdas = autoLambdas
 	p.next()
 }
 
@@ -2312,7 +2315,7 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	if p.trace {
 		defer un(trace(p, "CallOrConversion"))
 	}
-	var lparen, rparen token.Pos
+	var lparen token.Pos
 	var endTok token.Token
 	if isCmd {
 		endTok = token.SEMICOLON
@@ -2320,22 +2323,41 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 		lparen, endTok = p.expect(token.LPAREN), token.RPAREN
 	}
 	p.exprLev++
+
 	var args []ast.Expr
 	var kwargs []*ast.KwargExpr
 	var ellipsis token.Pos
-	for p.tok != endTok && p.tok != token.EOF && !ellipsis.IsValid() {
-		flags := flagAllowKwargExpr
-		expr, exprKind := p.parseRHSOrTypeEx(flags)
-		if exprKind == exprKwarg {
-			kwargs = append(kwargs, expr.(*ast.KwargExpr))
-		} else {
-			if len(kwargs) > 0 {
-				p.error(expr.Pos(), "positional argument follows keyword argument")
+
+	var autoLambda int
+	if isCmd { // only command calls allow auto lambda
+		if f, ok := fun.(*ast.Ident); ok {
+			if v, ok := p.autoLambdas[f.Name]; ok {
+				autoLambda = v + 1
+				endTok = token.LBRACE
 			}
-			args = append(args, expr) // builtins may expect a type: make(some type, ...)
-			if p.tok == token.ELLIPSIS {
-				ellipsis = p.pos
-				p.next()
+		}
+	}
+
+	for p.tok != endTok && p.tok != token.EOF && ellipsis == token.NoPos {
+		if autoLambda > 0 {
+			args = append(args, p.parseRHSOrType())
+			autoLambda--
+			if autoLambda == 0 {
+				break
+			}
+		} else {
+			expr, exprKind := p.parseRHSOrTypeEx(flagAllowKwargExpr)
+			if exprKind == exprKwarg {
+				kwargs = append(kwargs, expr.(*ast.KwargExpr))
+			} else {
+				if len(kwargs) > 0 {
+					p.error(expr.Pos(), "positional argument follows keyword argument")
+				}
+				args = append(args, expr) // builtins may expect a type: make(some type, ...)
+				if p.tok == token.ELLIPSIS {
+					ellipsis = p.pos
+					p.next()
+				}
 			}
 		}
 		if isCmd && p.tok == token.RBRACE {
@@ -2346,11 +2368,20 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 		}
 		p.next()
 	}
+
 	p.exprLev--
-	var noParenEnd token.Pos
+	var rparen, noParenEnd token.Pos
 	if isCmd {
 		noParenEnd = p.pos
-	} else if rparen == token.NoPos {
+		if autoLambda == 1 {
+			body := p.parseBlockStmt()
+			args = append(args, &ast.LambdaExpr2{
+				First:      body.Lbrace,
+				Body:       body,
+				AutoLambda: true,
+			})
+		}
+	} else {
 		rparen = p.expectClosing(token.RPAREN, "argument list")
 	}
 	if debugParseOutput {

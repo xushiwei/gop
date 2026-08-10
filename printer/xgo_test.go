@@ -27,6 +27,7 @@ import (
 	"github.com/goplus/xgo/ast"
 	"github.com/goplus/xgo/format"
 	"github.com/goplus/xgo/parser"
+	"github.com/goplus/xgo/parser/parsertest"
 	"github.com/goplus/xgo/printer"
 	"github.com/goplus/xgo/token"
 )
@@ -141,11 +142,10 @@ func testFrom(t *testing.T, fpath, sel string, mode int) {
 	if (mode & excludeFormatNode) == 0 {
 		t.Run("format.Node "+fpath, func(t *testing.T) {
 			fset := token.NewFileSet()
-			m := parser.ParseComments
-			if filepath.Ext(fpath) == ".gox" {
-				m |= parser.ParseXGoClass
-			}
-			f, err := parser.ParseFile(fset, fpath, src, m)
+			f, err := parser.ParseEntry(fset, fpath, src, parser.Config{
+				ClassInfo: parsertest.ClassInfo,
+				Mode:      parser.ParseComments,
+			})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -196,8 +196,8 @@ func TestFromParse(t *testing.T) {
 		}
 		name := info.Name()
 		ext := filepath.Ext(name)
-		if !info.IsDir() && (ext == ".xgo" || ext == ".gox") {
-			testFrom(t, path, sel, 0)
+		if !info.IsDir() && (ext == ".xgo" || ext == ".gox" || ext == ".gsh" || ext == ".spx") {
+			testFrom(t, path, sel, excludeFormatSource)
 		}
 		return nil
 	})

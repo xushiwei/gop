@@ -363,13 +363,20 @@ func TestParseFieldDecl(t *testing.T) {
 	var p parser
 	p.init(token.NewFileSet(), "/foo/bar.xgo", []byte(`type T struct {
 }
-`), 0)
+`), 0, nil)
 	p.parseFieldDecl(nil)
+}
+
+func TestDefaultClassInfo(t *testing.T) {
+	_, isProj, ok := defaultClassInfo("foo.gsh")
+	if !isProj || !ok {
+		t.Fatal("defaultClassInfo for foo.gsh failed")
+	}
 }
 
 func TestCheckExpr(t *testing.T) {
 	var p parser
-	p.init(token.NewFileSet(), "/foo/bar.xgo", []byte(``), 0)
+	p.init(token.NewFileSet(), "/foo/bar.xgo", []byte(``), 0, nil)
 	p.checkExpr(&ast.Ellipsis{})
 	p.checkExpr(&ast.ElemEllipsis{})
 	p.checkExpr(&ast.MatrixLit{})

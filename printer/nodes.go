@@ -157,6 +157,10 @@ const filteredMsg = "contains filtered or unexported fields"
 //	so that we can use the algorithm for any kind of list
 //	(e.g., pass list via a channel over which to range).
 func (p *printer) exprList(prev0 token.Pos, list []ast.Expr, depth int, mode exprListMode, next0 token.Pos, isIncomplete bool) {
+	p.exprListEx(prev0, list, depth, mode, next0, isIncomplete, false)
+}
+
+func (p *printer) exprListEx(prev0 token.Pos, list []ast.Expr, depth int, mode exprListMode, next0 token.Pos, isIncomplete, autoLambda bool) {
 	if len(list) == 0 {
 		if isIncomplete {
 			prev := p.posFor(prev0)
@@ -180,9 +184,13 @@ func (p *printer) exprList(prev0 token.Pos, list []ast.Expr, depth int, mode exp
 		// all list entries on a single line
 		for i, x := range list {
 			if i > 0 {
-				// use position of expression following the comma as
-				// comma position for correct comment placement
-				p.print(x.Pos(), token.COMMA, blank)
+				if autoLambda && i == len(list)-1 {
+					p.print(blank)
+				} else {
+					// use position of expression following the comma as
+					// comma position for correct comment placement
+					p.print(x.Pos(), token.COMMA, blank)
+				}
 			}
 			p.expr0(x, depth)
 		}
@@ -269,35 +277,39 @@ func (p *printer) exprList(prev0 token.Pos, list []ast.Expr, depth int, mode exp
 
 		needsLinebreak := 0 < prevLine && prevLine < line
 		if i > 0 {
-			// Use position of expression following the comma as
-			// comma position for correct comment placement, but
-			// only if the expression is on the same line.
-			if !needsLinebreak {
-				p.print(x.Pos())
-			}
-			p.print(token.COMMA)
-			needsBlank := true
-			if needsLinebreak {
-				// Lines are broken using newlines so comments remain aligned
-				// unless useFF is set or there are multiple expressions on
-				// the same line in which case formfeed is used.
-				nbreaks := p.linebreak(line, 0, ws, useFF || prevBreak+1 < i)
-				if nbreaks > 0 {
-					ws = ignore
-					prevBreak = i
-					needsBlank = false // we got a line break instead
-				}
-				// If there was a new section or more than one new line
-				// (which means that the tabwriter will implicitly break
-				// the section), reset the geomean variables since we are
-				// starting a new group of elements with the next element.
-				if nbreaks > 1 {
-					lnsum = 0
-					count = 0
-				}
-			}
-			if needsBlank {
+			if autoLambda && i == len(list)-1 {
 				p.print(blank)
+			} else {
+				// Use position of expression following the comma as
+				// comma position for correct comment placement, but
+				// only if the expression is on the same line.
+				if !needsLinebreak {
+					p.print(x.Pos())
+				}
+				p.print(token.COMMA)
+				needsBlank := true
+				if needsLinebreak {
+					// Lines are broken using newlines so comments remain aligned
+					// unless useFF is set or there are multiple expressions on
+					// the same line in which case formfeed is used.
+					nbreaks := p.linebreak(line, 0, ws, useFF || prevBreak+1 < i)
+					if nbreaks > 0 {
+						ws = ignore
+						prevBreak = i
+						needsBlank = false // we got a line break instead
+					}
+					// If there was a new section or more than one new line
+					// (which means that the tabwriter will implicitly break
+					// the section), reset the geomean variables since we are
+					// starting a new group of elements with the next element.
+					if nbreaks > 1 {
+						lnsum = 0
+						count = 0
+					}
+				}
+				if needsBlank {
+					p.print(blank)
+				}
 			}
 		}
 
@@ -935,8 +947,15 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		} else {
 			wasIndented = p.possibleSelectorExpr(x.Fun, token.HighestPrec, depth)
 		}
-		if x.NoParenEnd != token.NoPos {
+		var isCmd = x.NoParenEnd.IsValid()
+		if isCmd {
 			p.print(blank)
+			if n := len(x.Args); n > 0 {
+				if e, ok := x.Args[n-1].(*ast.LambdaExpr2); ok && e.AutoLambda {
+					p.exprListEx(x.Lparen, x.Args, depth, commaTerm, x.Rparen, false, true)
+					return
+				}
+			}
 			depth++
 		} else {
 			p.print(x.Lparen, token.LPAREN)
@@ -962,7 +981,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 				p.expr0(arg.Value, depth)
 			}
 		}
-		if x.NoParenEnd == token.NoPos {
+		if !isCmd {
 			p.print(x.Rparen, token.RPAREN)
 		}
 		if wasIndented {
@@ -1130,15 +1149,17 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		}
 
 	case *ast.LambdaExpr2:
-		if x.LhsHasParen {
-			p.print(token.LPAREN)
-			p.identList(x.Lhs, false)
-			p.print(token.RPAREN, blank)
-		} else if x.Lhs != nil {
-			p.expr(x.Lhs[0])
-			p.print(blank)
+		if !x.AutoLambda {
+			if x.LhsHasParen {
+				p.print(token.LPAREN)
+				p.identList(x.Lhs, false)
+				p.print(token.RPAREN, blank)
+			} else if x.Lhs != nil {
+				p.expr(x.Lhs[0])
+				p.print(blank)
+			}
+			p.print(token.DRARROW, blank)
 		}
-		p.print(token.DRARROW, blank)
 		p.block(x.Body, 1)
 
 	case *ast.RangeExpr:

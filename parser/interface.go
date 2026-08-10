@@ -81,7 +81,7 @@ const (
 // errors were found, the result is a partial AST (with ast.Bad* nodes
 // representing the fragments of erroneous source code). Multiple errors
 // are returned via a scanner.ErrorList which is sorted by source position.
-func parseFile(fset *token.FileSet, filename string, src any, mode Mode) (f *ast.File, err error) {
+func parseFile(fset *token.FileSet, filename string, src any, mode Mode, autoLambdas map[string]int) (f *ast.File, err error) {
 	if fset == nil {
 		panic("parser.ParseFile: no token.FileSet provided (fset == nil)")
 	}
@@ -116,7 +116,7 @@ func parseFile(fset *token.FileSet, filename string, src any, mode Mode) (f *ast
 	}()
 
 	// parse source
-	p.init(fset, filename, text, mode)
+	p.init(fset, filename, text, mode, autoLambdas)
 	f = p.parseFile()
 
 	return
@@ -154,7 +154,7 @@ func ParseExprFrom(fset *token.FileSet, filename string, src any, mode Mode) (ex
 	}()
 
 	// parse expr
-	p.init(fset, filename, text, mode)
+	p.init(fset, filename, text, mode, nil)
 	expr = p.parseRHS()
 
 	// If a semicolon was inserted, consume it;

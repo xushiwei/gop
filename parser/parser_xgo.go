@@ -85,9 +85,26 @@ func ParseDir(fset *token.FileSet, path string, filter func(fs.FileInfo) bool, m
 }
 
 type Config struct {
+	// Deprecated: use ClassInfo instead.
 	ClassKind func(fname string) (isProj, ok bool)
+
+	// See https://github.com/goplus/xgo/issues/2828 to learn about auto lambda.
+	ClassInfo func(fname string) (autoLambdas map[string]int, isProj, ok bool)
 	Filter    func(fs.FileInfo) bool
 	Mode      Mode
+}
+
+func getClassInfo(conf *Config) func(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
+	if conf.ClassInfo != nil {
+		return conf.ClassInfo
+	}
+	if classKind := conf.ClassKind; classKind != nil {
+		return func(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
+			isProj, ok = classKind(fname)
+			return
+		}
+	}
+	return defaultClassInfo
 }
 
 // ParseDirEx calls ParseFSDir by passing a local filesystem.
@@ -120,9 +137,7 @@ func ParseFSDir(fset *token.FileSet, fs FileSystem, dir string, conf Config) (pk
 	if err != nil {
 		return nil, err
 	}
-	if conf.ClassKind == nil {
-		conf.ClassKind = defaultClassKind
-	}
+	classInfo := getClassInfo(&conf)
 	pkgs = make(map[string]*ast.Package)
 	for _, d := range list {
 		if d.IsDir() {
@@ -131,6 +146,7 @@ func ParseFSDir(fset *token.FileSet, fs FileSystem, dir string, conf Config) (pk
 		fname := d.Name()
 		ext := path.Ext(fname)
 		var isProj, isClass, isNormalGox, useGoParser bool
+		var autoLambdas map[string]int
 		switch ext {
 		case ".xgo", ".gop":
 		case ".go":
@@ -142,7 +158,7 @@ func ParseFSDir(fset *token.FileSet, fs FileSystem, dir string, conf Config) (pk
 			isNormalGox = true
 			fallthrough
 		default:
-			if isProj, isClass = conf.ClassKind(fname); isClass {
+			if autoLambdas, isProj, isClass = classInfo(fname); isClass {
 				isNormalGox = false
 			} else if isNormalGox { // not found XGo class by ext, but is a .gox file
 				isClass = true
@@ -171,7 +187,7 @@ func ParseFSDir(fset *token.FileSet, fs FileSystem, dir string, conf Config) (pk
 					first = err
 				}
 			} else {
-				f, err := ParseFSFile(fset, fs, filename, nil, mode)
+				f, err := parseFSFileEx(fset, fs, filename, nil, mode, autoLambdas)
 				if f != nil {
 					f.IsProj, f.IsClass = isProj, isClass
 					f.IsNormalGox = isNormalGox
@@ -195,16 +211,15 @@ func ParseFSEntry(fset *token.FileSet, fs FileSystem, filename string, src any, 
 	fname := fs.Base(filename)
 	ext := path.Ext(fname)
 	var isProj, isClass, isNormalGox bool
+	var autoLambdas map[string]int
 	switch ext {
 	case ".xgo", ".gop", ".go":
 	case ".gox":
 		isNormalGox = true
 		fallthrough
 	default:
-		if conf.ClassKind == nil {
-			conf.ClassKind = defaultClassKind
-		}
-		if isProj, isClass = conf.ClassKind(fname); isClass {
+		classInfo := getClassInfo(&conf)
+		if autoLambdas, isProj, isClass = classInfo(fname); isClass {
 			isNormalGox = false
 		} else if isNormalGox { // not found XGo class by ext, but is a .gox file
 			isClass = true
@@ -216,7 +231,7 @@ func ParseFSEntry(fset *token.FileSet, fs FileSystem, filename string, src any, 
 	if isClass {
 		mode |= ParseXGoClass
 	}
-	f, err = ParseFSFile(fset, fs, filename, src, mode)
+	f, err = parseFSFileEx(fset, fs, filename, src, mode, autoLambdas)
 	if f != nil {
 		f.IsProj, f.IsClass = isProj, isClass
 		f.IsNormalGox = isNormalGox
@@ -241,11 +256,11 @@ func reqPkg(pkgs map[string]*ast.Package, name string) *ast.Package {
 	return pkg
 }
 
-func defaultClassKind(fname string) (isProj bool, ok bool) {
+func defaultClassInfo(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
 	ext := path.Ext(fname)
 	switch ext {
 	case ".gsh":
-		return true, true
+		return nil, true, true
 	}
 	return
 }
@@ -320,11 +335,15 @@ func ParseFSEntries(fset *token.FileSet, fs FileSystem, files []string, conf Con
 
 // ParseFile parses the source code of a single XGo source file and returns the corresponding ast.File node.
 func ParseFile(fset *token.FileSet, filename string, src any, mode Mode) (f *ast.File, err error) {
-	return ParseFSFile(fset, fsx.Local, filename, src, mode)
+	return parseFSFileEx(fset, fsx.Local, filename, src, mode, nil)
 }
 
 // ParseFSFile parses the source code of a single XGo source file and returns the corresponding ast.File node.
 func ParseFSFile(fset *token.FileSet, fs FileSystem, filename string, src any, mode Mode) (f *ast.File, err error) {
+	return parseFSFileEx(fset, fs, filename, src, mode, nil)
+}
+
+func parseFSFileEx(fset *token.FileSet, fs FileSystem, filename string, src any, mode Mode, autoLambdas map[string]int) (f *ast.File, err error) {
 	code, err := readSourceFS(fs, filename, src)
 	if err != nil {
 		return
@@ -332,7 +351,7 @@ func ParseFSFile(fset *token.FileSet, fs FileSystem, filename string, src any, m
 	if mode&SaveAbsFile != 0 {
 		filename, _ = fs.Abs(filename)
 	}
-	return parseFile(fset, filename, code, mode)
+	return parseFile(fset, filename, code, mode, autoLambdas)
 }
 
 func readSourceFS(fs FileSystem, filename string, src any) ([]byte, error) {

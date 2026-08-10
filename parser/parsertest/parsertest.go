@@ -22,6 +22,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -32,6 +33,21 @@ import (
 	tpltoken "github.com/goplus/xgo/tpl/token"
 	"github.com/qiniu/x/test"
 )
+
+func ClassInfo(fname string) (autoLambdas map[string]int, isProj, ok bool) {
+	ext := path.Ext(fname)
+	switch ext {
+	case ".spx":
+		autoLambdas, ok = map[string]int{
+			"times":       1,
+			"repeatUntil": 1,
+			"forEver":     0,
+		}, true
+	case ".gsh":
+		return nil, true, true
+	}
+	return
+}
 
 func sortedKeys(m any) []string {
 	iter := reflect.ValueOf(m).MapRange()
