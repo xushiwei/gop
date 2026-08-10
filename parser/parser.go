@@ -2367,7 +2367,6 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 		p.next()
 	}
 
-	p.exprLev--
 	var rparen, noParenEnd token.Pos
 	if isCmd {
 		noParenEnd = p.pos
@@ -2382,6 +2381,9 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	} else {
 		rparen = p.expectClosing(token.RPAREN, "argument list")
 	}
+
+	p.exprLev--
+
 	if debugParseOutput {
 		log.Printf("ast.CallExpr{Fun: %v, Ellipsis: %v, isCmd: %v}\n", fun, ellipsis != 0, isCmd)
 	}
