@@ -259,11 +259,12 @@ func TestParseEntry2(t *testing.T) {
 		t.Fatal("os.ReadFile:", err)
 	}
 	conf := Config{}
-	conf.ClassInfo = func(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
+	// NOTE(xsw): keep ClassKind for testing backward compatibility
+	conf.ClassKind = func(fname string) (isProj bool, ok bool) {
 		if strings.HasSuffix(fname, "_yap.gox") {
-			return nil, true, true
+			return true, true
 		}
-		return defaultClassInfo(fname)
+		return
 	}
 	t.Run("_yap.gox file", func(t *testing.T) {
 		f, err := ParseEntry(fset, "./functype_yap.gox", src, conf)

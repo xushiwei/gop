@@ -2315,10 +2315,16 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	if p.trace {
 		defer un(trace(p, "CallOrConversion"))
 	}
+	var autoLambda int
 	var lparen token.Pos
 	var endTok token.Token
 	if isCmd {
 		endTok = token.SEMICOLON
+		if f, ok := fun.(*ast.Ident); ok { // only command calls allow auto lambda
+			if v, ok := p.autoLambdas[f.Name]; ok {
+				autoLambda = v + 1
+			}
+		}
 	} else {
 		lparen, endTok = p.expect(token.LPAREN), token.RPAREN
 	}
@@ -2327,22 +2333,14 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	var args []ast.Expr
 	var kwargs []*ast.KwargExpr
 	var ellipsis token.Pos
-
-	var autoLambda int
-	if isCmd { // only command calls allow auto lambda
-		if f, ok := fun.(*ast.Ident); ok {
-			if v, ok := p.autoLambdas[f.Name]; ok {
-				autoLambda = v + 1
-				endTok = token.LBRACE
-			}
-		}
-	}
-
 	for p.tok != endTok && p.tok != token.EOF && ellipsis == token.NoPos {
 		if autoLambda > 0 {
+			if autoLambda == 1 && p.tok == token.LBRACE {
+				break
+			}
 			args = append(args, p.parseRHSOrType())
 			autoLambda--
-			if autoLambda == 0 {
+			if autoLambda == 1 && p.tok == token.LBRACE {
 				break
 			}
 		} else {
@@ -2359,9 +2357,9 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 					p.next()
 				}
 			}
-		}
-		if isCmd && p.tok == token.RBRACE {
-			break
+			if isCmd && p.tok == token.RBRACE {
+				break
+			}
 		}
 		if !p.atComma("argument list", endTok) {
 			break
@@ -2369,7 +2367,6 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 		p.next()
 	}
 
-	p.exprLev--
 	var rparen, noParenEnd token.Pos
 	if isCmd {
 		noParenEnd = p.pos
@@ -2384,6 +2381,9 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 	} else {
 		rparen = p.expectClosing(token.RPAREN, "argument list")
 	}
+
+	p.exprLev--
+
 	if debugParseOutput {
 		log.Printf("ast.CallExpr{Fun: %v, Ellipsis: %v, isCmd: %v}\n", fun, ellipsis != 0, isCmd)
 	}
