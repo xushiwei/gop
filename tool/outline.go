@@ -67,7 +67,7 @@ func Outline(dir string, conf *Config) (out outline.Package, err error) {
 		fset = token.NewFileSet()
 	}
 	pkgs, err := parser.ParseDirEx(fset, dir, parser.Config{
-		ClassKind: mod.ClassKind,
+		ClassInfo: mod.ClassInfo,
 		Filter:    filter,
 		Mode:      parser.ParseComments,
 	})

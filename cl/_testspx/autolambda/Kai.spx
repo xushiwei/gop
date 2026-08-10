@@ -1,0 +1,13 @@
+onStart {
+	x := 1
+	repeatUntil x > 10 {
+		echo "Hi"
+		x++
+	}
+	when x == 11 {
+		echo "x = 11"
+	}
+	forEver {
+		step 1
+	}
+}
