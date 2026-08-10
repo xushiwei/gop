@@ -74,6 +74,24 @@ func Sched() {
 func SchedNow() {
 }
 
+func ForEver(body func()) {
+	for {
+		body()
+	}
+}
+
+func When(__xgo_autoclosure_cond func() bool, body func()) {
+	if __xgo_autoclosure_cond() {
+		body()
+	}
+}
+
+func RepeatUntil(__xgo_autoclosure_cond func() bool, body func()) {
+	for !__xgo_autoclosure_cond() {
+		body()
+	}
+}
+
 func Rand__0(int) int {
 	return 0
 }

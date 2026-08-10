@@ -43,6 +43,9 @@ func (p *Sprite) Position() *pkg.Vector {
 	return &p.pos
 }
 
+func (p *Sprite) OnStart(fn func()) {
+}
+
 type Mesher interface {
 	Name() string
 }

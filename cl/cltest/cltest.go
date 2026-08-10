@@ -68,6 +68,13 @@ func init() {
 
 func LookupClass(ext string) (c *modfile.Project, ok bool) {
 	switch ext {
+	case ".spx":
+		return &modfile.Project{
+			Ext: ".spx", Class: "*MyGame",
+			Works:       []*modfile.Class{{Ext: ".spx", Class: "Sprite"}},
+			PkgPaths:    []string{"github.com/goplus/xgo/cl/internal/spx", "math"},
+			AutoLambdas: map[string]int{"forEver": 0, "repeatUntil": 1, "when": 1, "onStart": 0},
+		}, true
 	case ".tgmx", ".tspx":
 		return &modfile.Project{
 			Ext: ".tgmx", Class: "*MyGame",
