@@ -506,7 +506,9 @@ func (*ErrWrapExpr) exprNode() {}
 
 // -----------------------------------------------------------------------------
 
-// LambdaExpr represents one of the following expressions:
+// ArrowExpr is syntactic sugar for a LambdaExpr whose Body is a single return statement.
+//
+// ArrowExpr represents one of the following expressions:
 //
 //	`(x, y, ...) => exprOrExprTuple`
 //	`x => exprOrExprTuple`
@@ -516,7 +518,7 @@ func (*ErrWrapExpr) exprNode() {}
 //
 //	`expr`
 //	`(expr1, expr2, ...)`
-type LambdaExpr struct {
+type ArrowExpr struct {
 	First       token.Pos
 	Lhs         []*Ident
 	Rarrow      token.Pos
@@ -526,12 +528,12 @@ type LambdaExpr struct {
 	RhsHasParen bool
 }
 
-// LambdaExpr2 represents one of the following expressions:
+// LambdaExpr represents one of the following expressions:
 //
 //	`(x, y, ...) => { ... }`
 //	`x => { ... }`
 //	`=> { ... }`
-type LambdaExpr2 struct {
+type LambdaExpr struct {
 	First       token.Pos
 	Lhs         []*Ident
 	Rarrow      token.Pos
@@ -543,30 +545,30 @@ type LambdaExpr2 struct {
 }
 
 // Pos - position of first character belonging to the node.
+func (p *ArrowExpr) Pos() token.Pos {
+	return p.First
+}
+
+// End - position of first character immediately after the node.
+func (p *ArrowExpr) End() token.Pos {
+	return p.Last
+}
+
+// Pos - position of first character belonging to the node.
 func (p *LambdaExpr) Pos() token.Pos {
 	return p.First
 }
 
 // End - position of first character immediately after the node.
 func (p *LambdaExpr) End() token.Pos {
-	return p.Last
-}
-
-// Pos - position of first character belonging to the node.
-func (p *LambdaExpr2) Pos() token.Pos {
-	return p.First
-}
-
-// End - position of first character immediately after the node.
-func (p *LambdaExpr2) End() token.Pos {
 	if p.Body == nil {
 		return p.Rarrow + 2
 	}
 	return p.Body.End()
 }
 
-func (*LambdaExpr) exprNode()  {}
-func (*LambdaExpr2) exprNode() {}
+func (*ArrowExpr) exprNode()  {}
+func (*LambdaExpr) exprNode() {}
 
 // -----------------------------------------------------------------------------
 

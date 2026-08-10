@@ -2375,7 +2375,7 @@ func (p *parser) parseCallOrConversion(fun ast.Expr, isCmd bool) *ast.CallExpr {
 		noParenEnd = p.pos
 		if autoLambda == 1 {
 			body := p.parseBlockStmt()
-			args = append(args, &ast.LambdaExpr2{
+			args = append(args, &ast.LambdaExpr{
 				First:      body.Lbrace,
 				Body:       body,
 				AutoLambda: true,
@@ -2565,8 +2565,8 @@ func (p *parser) checkExpr(x ast.Expr) ast.Expr {
 	case *ast.BinaryExpr:
 	case *ast.RangeExpr:
 	case *ast.ErrWrapExpr:
+	case *ast.ArrowExpr:
 	case *ast.LambdaExpr:
-	case *ast.LambdaExpr2:
 	case *ast.TupleLit:
 	case *ast.MatrixLit:
 	case *ast.EnvExpr:
@@ -3058,7 +3058,7 @@ func (p *parser) parseLambdaExpr(flags int) (x ast.Expr, exprKind int) {
 			log.Printf("ast.LambdaExpr{Lhs: %v}\n", lhs)
 		}
 		if body != nil {
-			return &ast.LambdaExpr2{
+			return &ast.LambdaExpr{
 				First:       first,
 				Lhs:         lhs,
 				Rarrow:      rarrow,
@@ -3066,7 +3066,7 @@ func (p *parser) parseLambdaExpr(flags int) (x ast.Expr, exprKind int) {
 				LhsHasParen: lhsHasParen,
 			}, 0
 		}
-		return &ast.LambdaExpr{
+		return &ast.ArrowExpr{
 			First:       first,
 			Last:        p.pos,
 			Lhs:         lhs,

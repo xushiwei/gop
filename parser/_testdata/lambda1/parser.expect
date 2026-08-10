@@ -19,7 +19,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: foo
               Args:
-                ast.LambdaExpr:
+                ast.ArrowExpr:
                   Rhs:
                     ast.BasicLit:
                       Kind: STRING
@@ -31,7 +31,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: foo
               Args:
-                ast.LambdaExpr:
+                ast.ArrowExpr:
                   Lhs:
                     ast.Ident:
                       Name: x
@@ -51,7 +51,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: foo
               Args:
-                ast.LambdaExpr:
+                ast.ArrowExpr:
                   Lhs:
                     ast.Ident:
                       Name: x
@@ -73,7 +73,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: foo
               Args:
-                ast.LambdaExpr:
+                ast.ArrowExpr:
                   Lhs:
                     ast.Ident:
                       Name: x
@@ -96,7 +96,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: foo
               Args:
-                ast.LambdaExpr:
+                ast.ArrowExpr:
                   Rhs:
                     ast.BasicLit:
                       Kind: STRING

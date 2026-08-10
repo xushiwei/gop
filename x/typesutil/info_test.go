@@ -798,7 +798,7 @@ for line <- os.Stdin {
 003:  5:10 | line                | var line string`)
 }
 
-func TestLambdaExpr(t *testing.T) {
+func TestArrowExpr(t *testing.T) {
 	testXGoInfo(t, `package main
 func Map(c []float64, t func(float64) float64) {
 	// ...
@@ -869,7 +869,7 @@ Map2([1.2, 3.5, 6], x => (x * x, x + x))
 014: 11:38 | x                   | var x float64`)
 }
 
-func TestLambdaExpr2(t *testing.T) {
+func TestLambdaExpr(t *testing.T) {
 	testXGoInfo(t, `package main
 func Map(c []float64, t func(float64) float64) {
 	// ...
@@ -1880,9 +1880,9 @@ func TestScopesInfo(t *testing.T) {
 				kind = "range"
 			case *ast.ForPhraseStmt:
 				kind = "for phrase"
-			case *ast.LambdaExpr:
+			case *ast.ArrowExpr:
 				kind = "lambda"
-			case *ast.LambdaExpr2:
+			case *ast.LambdaExpr:
 				kind = "lambda"
 			case *ast.ForPhrase:
 				kind = "for phrase"

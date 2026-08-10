@@ -59,7 +59,7 @@ func formattedCallName(t *testing.T, expr ast.Expr) string {
 
 func formattedLambdaCallName(t *testing.T, expr ast.Expr) string {
 	t.Helper()
-	lambda, ok := expr.(*ast.LambdaExpr)
+	lambda, ok := expr.(*ast.ArrowExpr)
 	if !ok {
 		t.Fatalf("expression = %T, want *ast.LambdaExpr", expr)
 	}

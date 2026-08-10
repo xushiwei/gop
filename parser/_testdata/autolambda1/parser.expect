@@ -23,7 +23,7 @@ ast.FuncDecl:
                 ast.BasicLit:
                   Kind: INT
                   Value: 3
-                ast.LambdaExpr2:
+                ast.LambdaExpr:
                   Body:
                     ast.BlockStmt:
         ast.ExprStmt:
@@ -42,6 +42,6 @@ ast.FuncDecl:
                     ast.BasicLit:
                       Kind: INT
                       Value: 3
-                ast.LambdaExpr2:
+                ast.LambdaExpr:
                   Body:
                     ast.BlockStmt:

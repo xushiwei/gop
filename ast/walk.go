@@ -409,11 +409,11 @@ func Walk(v Visitor, node Node) {
 	case *ElemEllipsis:
 		Walk(v, n.Elt)
 
-	case *LambdaExpr:
+	case *ArrowExpr:
 		walkList(v, n.Lhs)
 		walkList(v, n.Rhs)
 
-	case *LambdaExpr2:
+	case *LambdaExpr:
 		walkList(v, n.Lhs)
 		Walk(v, n.Body)
 
