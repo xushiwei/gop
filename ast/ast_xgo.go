@@ -537,7 +537,9 @@ type LambdaExpr2 struct {
 	Rarrow      token.Pos
 	Body        *BlockStmt
 	LhsHasParen bool
-	AutoLambda  bool
+
+	// With AutoLambda, this node can now also represent an implicit lambda with no arrow at all (e.g. forEver { ... }, times 3 { ... }). See https://github.com/goplus/xgo/issues/2828.
+	AutoLambda bool
 }
 
 // Pos - position of first character belonging to the node.

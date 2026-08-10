@@ -85,7 +85,10 @@ func ParseDir(fset *token.FileSet, path string, filter func(fs.FileInfo) bool, m
 }
 
 type Config struct {
-	ClassKind func(fname string) (isProj, ok bool) // Deprecated: use ClassInfo instead.
+	// Deprecated: use ClassInfo instead.
+	ClassKind func(fname string) (isProj, ok bool)
+
+	// See https://github.com/goplus/xgo/issues/2828 to learn about auto lambda.
 	ClassInfo func(fname string) (autoLambdas map[string]int, isProj, ok bool)
 	Filter    func(fs.FileInfo) bool
 	Mode      Mode
@@ -134,7 +137,7 @@ func ParseFSDir(fset *token.FileSet, fs FileSystem, dir string, conf Config) (pk
 	if err != nil {
 		return nil, err
 	}
-	var autoLambdas map[string]int
+	classInfo := getClassInfo(&conf)
 	pkgs = make(map[string]*ast.Package)
 	for _, d := range list {
 		if d.IsDir() {
@@ -143,6 +146,7 @@ func ParseFSDir(fset *token.FileSet, fs FileSystem, dir string, conf Config) (pk
 		fname := d.Name()
 		ext := path.Ext(fname)
 		var isProj, isClass, isNormalGox, useGoParser bool
+		var autoLambdas map[string]int
 		switch ext {
 		case ".xgo", ".gop":
 		case ".go":
@@ -154,7 +158,6 @@ func ParseFSDir(fset *token.FileSet, fs FileSystem, dir string, conf Config) (pk
 			isNormalGox = true
 			fallthrough
 		default:
-			classInfo := getClassInfo(&conf)
 			if autoLambdas, isProj, isClass = classInfo(fname); isClass {
 				isNormalGox = false
 			} else if isNormalGox { // not found XGo class by ext, but is a .gox file
