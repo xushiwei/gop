@@ -89,11 +89,11 @@ func funcLitToLambdaExpr(v *ast.FuncLit, ret *ast.Expr) {
 	}
 	if len(v.Body.List) == 1 {
 		if stmt, ok := v.Body.List[0].(*ast.ReturnStmt); ok && len(stmt.Results) == nres {
-			*ret = &ast.LambdaExpr{First: v.Pos(), Last: v.Pos(), Lhs: lsh, Rhs: stmt.Results, LhsHasParen: len(lsh) > 1, RhsHasParen: len(stmt.Results) > 1}
+			*ret = &ast.ArrowExpr{First: v.Pos(), Last: v.Pos(), Lhs: lsh, Rhs: stmt.Results, LhsHasParen: len(lsh) > 1, RhsHasParen: len(stmt.Results) > 1}
 			return
 		}
 	}
-	*ret = &ast.LambdaExpr2{Lhs: lsh, Body: v.Body, LhsHasParen: len(lsh) > 1}
+	*ret = &ast.LambdaExpr{Lhs: lsh, Body: v.Body, LhsHasParen: len(lsh) > 1}
 }
 
 func checkResult(v *ast.FieldList) (nres int, named []*ast.Ident) {

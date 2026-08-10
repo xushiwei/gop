@@ -2037,7 +2037,7 @@ func makeInitExpr(ctx *blockCtx, v *ast.ValueSpec, typ types.Type, names []strin
 		} else {
 			for _, val := range v.Values {
 				switch e := val.(type) {
-				case *ast.LambdaExpr, *ast.LambdaExpr2:
+				case *ast.ArrowExpr, *ast.LambdaExpr:
 					if len(v.Values) == 1 {
 						sig, err := checkLambdaFuncType(ctx, e, typ, clLambaAssign, v.Names[0])
 						if err != nil {

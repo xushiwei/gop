@@ -133,9 +133,9 @@ func formatExpr(ctx *formatCtx, expr ast.Expr, ref *ast.Expr) {
 	case *ast.TypeAssertExpr:
 		formatExpr(ctx, v.X, &v.X)
 		formatType(ctx, v.Type, &v.Type)
-	case *ast.LambdaExpr:
+	case *ast.ArrowExpr:
 		formatExprs(ctx, v.Rhs)
-	case *ast.LambdaExpr2:
+	case *ast.LambdaExpr:
 		formatBlockStmt(ctx, v.Body)
 	case *ast.RangeExpr:
 		formatRangeExpr(ctx, v)

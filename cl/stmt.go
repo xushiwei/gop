@@ -224,7 +224,7 @@ func compileReturnStmt(ctx *blockCtx, expr *ast.ReturnStmt) {
 				}
 			}
 			switch v := ret.(type) {
-			case *ast.LambdaExpr, *ast.LambdaExpr2:
+			case *ast.ArrowExpr, *ast.LambdaExpr:
 				rtyp := ctx.cb.Func().Type().(*types.Signature).Results().At(i).Type()
 				sig, ok := rtyp.(*types.Signature)
 				if !ok {
@@ -346,7 +346,7 @@ func compileAssignStmt(ctx *blockCtx, expr *ast.AssignStmt) {
 	}
 	for i, rhs := range expr.Rhs {
 		switch e := unparen(rhs).(type) {
-		case *ast.LambdaExpr, *ast.LambdaExpr2:
+		case *ast.ArrowExpr, *ast.LambdaExpr:
 			if len(expr.Lhs) == 1 && len(expr.Rhs) == 1 {
 				typ := ctx.cb.Get(-1).Type.(interface{ Elem() types.Type }).Elem()
 				sig, err := checkLambdaFuncType(ctx, e, typ, clLambaAssign, expr.Lhs[0])

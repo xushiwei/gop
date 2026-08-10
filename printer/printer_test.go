@@ -896,7 +896,7 @@ func foo() {
 
 func TestCommentedNodesInEventHandler(t *testing.T) {
 	commentedStmts := map[ast.Stmt]*ast.CommentGroup{}
-	handler := &ast.LambdaExpr2{
+	handler := &ast.LambdaExpr{
 		Body: &ast.BlockStmt{
 			List: []ast.Stmt{
 				&ast.ExprStmt{X: &ast.CallExpr{
@@ -966,7 +966,7 @@ func TestCommentedNodesKeepsTrailingBlankLineComments(t *testing.T) {
 		}}
 	}
 
-	handler := &ast.LambdaExpr2{
+	handler := &ast.LambdaExpr{
 		Body: &ast.BlockStmt{
 			List: []ast.Stmt{
 				&ast.ExprStmt{X: &ast.Ident{Name: "show"}},

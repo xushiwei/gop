@@ -951,7 +951,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 		if isCmd {
 			p.print(blank)
 			if n := len(x.Args); n > 0 {
-				if e, ok := x.Args[n-1].(*ast.LambdaExpr2); ok && e.AutoLambda {
+				if e, ok := x.Args[n-1].(*ast.LambdaExpr); ok && e.AutoLambda {
 					p.exprListEx(x.Lparen, x.Args, depth, commaTerm, x.Rparen, false, true)
 					return
 				}
@@ -1130,7 +1130,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 			p.print(token.COLON)
 			p.expr(x.Default)
 		}
-	case *ast.LambdaExpr:
+	case *ast.ArrowExpr:
 		if x.LhsHasParen {
 			p.print(token.LPAREN)
 			p.identList(x.Lhs, false)
@@ -1148,7 +1148,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int) {
 			p.expr(x.Rhs[0])
 		}
 
-	case *ast.LambdaExpr2:
+	case *ast.LambdaExpr:
 		if !x.AutoLambda {
 			if x.LhsHasParen {
 				p.print(token.LPAREN)

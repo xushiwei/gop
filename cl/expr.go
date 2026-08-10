@@ -1271,7 +1271,7 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 			t = sig.Results().At(0).Type()
 		}
 		switch expr := arg.(type) {
-		case *ast.LambdaExpr:
+		case *ast.ArrowExpr:
 			if fn.typeparam {
 				needInferFunc = true
 				compileIdent(ctx, 0, ast.NewIdent("nil"), 0) // TODO(xsw): check lhs
@@ -1284,7 +1284,7 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 			if err = compileLambdaExpr(ctx, expr, sig); err != nil {
 				return
 			}
-		case *ast.LambdaExpr2:
+		case *ast.LambdaExpr:
 			if fn.typeparam {
 				needInferFunc = true
 				compileIdent(ctx, 0, ast.NewIdent("nil"), 0) // TODO(xsw): check lhs
@@ -1369,7 +1369,7 @@ func checkLambdaFuncType(ctx *blockCtx, lambda ast.Expr, ftyp types.Type, flag c
 retry:
 	switch t := typ.(type) {
 	case *types.Signature:
-		if l, ok := lambda.(*ast.LambdaExpr); ok {
+		if l, ok := lambda.(*ast.ArrowExpr); ok {
 			if len(l.Rhs) != t.Results().Len() {
 				break
 			}
@@ -1388,11 +1388,11 @@ retry:
 
 func compileLambda(ctx *blockCtx, lambda ast.Expr, sig *types.Signature) {
 	switch expr := lambda.(type) {
-	case *ast.LambdaExpr2:
+	case *ast.LambdaExpr:
 		if err := compileLambdaExpr2(ctx, expr, sig); err != nil {
 			panic(err)
 		}
-	case *ast.LambdaExpr:
+	case *ast.ArrowExpr:
 		if err := compileLambdaExpr(ctx, expr, sig); err != nil {
 			panic(err)
 		}
@@ -1440,7 +1440,7 @@ func makeLambdaResults(pkg *gogen.Package, out *types.Tuple) *types.Tuple {
 	return types.NewTuple(results...)
 }
 
-func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature) error {
+func compileLambdaExpr(ctx *blockCtx, v *ast.ArrowExpr, sig *types.Signature) error {
 	pkg := ctx.pkg
 	params, err := makeLambdaParams(ctx, v.Pos(), v.End(), v.Lhs, sig.Params())
 	if err != nil {
@@ -1461,7 +1461,7 @@ func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature) e
 	return nil
 }
 
-func compileLambdaExpr2(ctx *blockCtx, v *ast.LambdaExpr2, sig *types.Signature) error {
+func compileLambdaExpr2(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature) error {
 	pkg := ctx.pkg
 	params, err := makeLambdaParams(ctx, v.Pos(), v.End(), v.Lhs, sig.Params())
 	if err != nil {
@@ -1634,7 +1634,7 @@ func compileDomainTextLit(ctx *blockCtx, v *ast.DomainTextLit) {
 			decls := f.Decls
 			for _, decl := range decls {
 				if r, ok := decl.(*tpl.Rule); ok {
-					if expr, ok := r.RetProc.(*ast.LambdaExpr2); ok {
+					if expr, ok := r.RetProc.(*ast.LambdaExpr); ok {
 						cb.Val(r.Name.Name)
 						sig := sigRetFunc(ctx.pkg, r.IsList())
 						compileLambdaExpr2(ctx, lambdaRetFunc(expr), sig)
@@ -1658,7 +1658,7 @@ func compileDomainTextLit(ctx *blockCtx, v *ast.DomainTextLit) {
 	cb.CallWith(n, 0, 0, v)
 }
 
-func lambdaRetFunc(expr *ast.LambdaExpr2) *ast.LambdaExpr2 {
+func lambdaRetFunc(expr *ast.LambdaExpr) *ast.LambdaExpr {
 	v := *expr
 	v.Lhs = []*ast.Ident{
 		{NamePos: expr.Pos(), Name: "self"},
@@ -1726,7 +1726,7 @@ func compileCompositeLitElts(ctx *blockCtx, elts []ast.Expr, kind int, expected 
 
 func compileCompositeLitElt(ctx *blockCtx, e ast.Expr, typ types.Type, flag clLambaFlag, toNode ast.Node) error {
 	switch v := unparen(e).(type) {
-	case *ast.LambdaExpr, *ast.LambdaExpr2:
+	case *ast.ArrowExpr, *ast.LambdaExpr:
 		sig, err := checkLambdaFuncType(ctx, v, typ, flag, toNode)
 		if err != nil {
 			return err

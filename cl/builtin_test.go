@@ -130,7 +130,7 @@ func TestCompileLambdaExpr(t *testing.T) {
 	}
 	lhs := []*ast.Ident{ast.NewIdent("x")}
 	sig := types.NewSignatureType(nil, nil, nil, nil, nil, false)
-	e := compileLambdaExpr(ctx, &ast.LambdaExpr{Lhs: lhs}, sig)
+	e := compileLambdaExpr(ctx, &ast.ArrowExpr{Lhs: lhs}, sig)
 	if ce := e.(*gogen.CodeError); ce.Msg != `too many arguments in lambda expression
 	have (x)
 	want ()` {
@@ -153,7 +153,7 @@ func TestCompileLambda1(t *testing.T) {
 	}
 	lhs := []*ast.Ident{ast.NewIdent("x")}
 	sig := types.NewSignatureType(nil, nil, nil, nil, nil, false)
-	compileLambda(ctx, &ast.LambdaExpr{Lhs: lhs}, sig)
+	compileLambda(ctx, &ast.ArrowExpr{Lhs: lhs}, sig)
 }
 
 func TestCompileLambda2(t *testing.T) {
@@ -171,7 +171,7 @@ func TestCompileLambda2(t *testing.T) {
 	}
 	lhs := []*ast.Ident{ast.NewIdent("x")}
 	sig := types.NewSignatureType(nil, nil, nil, nil, nil, false)
-	compileLambda(ctx, &ast.LambdaExpr2{Lhs: lhs}, sig)
+	compileLambda(ctx, &ast.LambdaExpr{Lhs: lhs}, sig)
 }
 
 func TestCompileExpr(t *testing.T) {

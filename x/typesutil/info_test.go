@@ -1880,9 +1880,9 @@ func TestScopesInfo(t *testing.T) {
 				kind = "range"
 			case *ast.ForPhraseStmt:
 				kind = "for phrase"
-			case *ast.LambdaExpr:
+			case *ast.ArrowExpr:
 				kind = "lambda"
-			case *ast.LambdaExpr2:
+			case *ast.LambdaExpr:
 				kind = "lambda"
 			case *ast.ForPhrase:
 				kind = "for phrase"
