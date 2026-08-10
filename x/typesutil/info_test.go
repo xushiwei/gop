@@ -51,10 +51,11 @@ func lookupClass(ext string) (c *modfile.Project, ok bool) {
 
 func spxParserConf() parser.Config {
 	return parser.Config{
-		ClassKind: func(fname string) (isProj bool, ok bool) {
+		ClassInfo: func(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
 			ext := modfile.ClassExt(fname)
 			c, ok := lookupClass(ext)
 			if ok {
+				autoLambdas = c.AutoLambdas
 				isProj = c.IsProj(ext, fname)
 			}
 			return

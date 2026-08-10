@@ -250,7 +250,7 @@ func LoadDir(dir string, conf *Config, genTestPkg bool, promptGenGo ...bool) (ou
 		fset = token.NewFileSet()
 	}
 	pkgs, err := parser.ParseDirEx(fset, dir, parser.Config{
-		ClassKind: mod.ClassKind,
+		ClassInfo: mod.ClassInfo,
 		Filter:    conf.Filter,
 		Mode:      parser.ParseComments | parser.SaveAbsFile,
 	})
@@ -370,7 +370,7 @@ func LoadFiles(dir string, files []string, conf *Config) (out *gogen.Package, er
 		fset = token.NewFileSet()
 	}
 	pkgs, err := parser.ParseEntries(fset, files, parser.Config{
-		ClassKind: mod.ClassKind,
+		ClassInfo: mod.ClassInfo,
 		Filter:    conf.Filter,
 		Mode:      parser.ParseComments | parser.SaveAbsFile,
 	})
@@ -419,6 +419,8 @@ var (
 // -----------------------------------------------------------------------------
 
 // GetFileClassType get xgo module file classType.
+//
+// Deprecated: Don't use it
 func GetFileClassType(mod *xgomod.Module, file *ast.File, filename string) (classType string, isTest bool) {
 	return cl.GetFileClassType(file, filename, mod.LookupClass)
 }

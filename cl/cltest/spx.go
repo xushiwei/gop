@@ -36,10 +36,11 @@ import (
 
 func spxParserConf() parser.Config {
 	return parser.Config{
-		ClassKind: func(fname string) (isProj bool, ok bool) {
+		ClassInfo: func(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
 			ext := modfile.ClassExt(fname)
 			c, ok := LookupClass(ext)
 			if ok {
+				autoLambdas = c.AutoLambdas
 				isProj = c.IsProj(ext, fname)
 			}
 			return

@@ -39,19 +39,20 @@ var (
 	projects = make(map[string]*cl.Project)
 )
 
-func RegisterClassFileType(ext string, class string, works []*Class, pkgPaths ...string) {
-	cls := &cl.Project{
+func RegisterClassFileType(ext string, class string, works []*Class, pkgPaths ...string) *cl.Project {
+	proj := &cl.Project{
 		Ext:      ext,
 		Class:    class,
 		Works:    works,
 		PkgPaths: pkgPaths,
 	}
 	if ext != "" {
-		projects[ext] = cls
+		projects[ext] = proj
 	}
 	for _, w := range works {
-		projects[w.Ext] = cls
+		projects[w.Ext] = proj
 	}
+	return proj
 }
 
 type Package struct {
@@ -71,18 +72,22 @@ func (p *Package) ToAst() *goast.File {
 	return p.Pkg.ASTFile()
 }
 
+// ClassKind checks a fname is a known classfile or not.
+// If it is, then it checks the fname is a project file or not.
+//
+// Deprecated: use ClassInfo instead.
 func ClassKind(fname string) (isProj, ok bool) {
+	_, isProj, ok = ClassInfo(fname)
+	return
+}
+
+// ClassInfo checks a fname is a known classfile or not.
+// If it is, it returns the auto-lambda map, whether it is a project file, and true.
+// See https://github.com/goplus/xgo/issues/2828 to learn about auto lambda.
+func ClassInfo(fname string) (autoLambdas map[string]int, isProj, ok bool) {
 	ext := modfile.ClassExt(fname)
 	if c, ok := projects[ext]; ok {
-		for _, w := range c.Works {
-			if w.Ext == ext {
-				if ext != c.Ext || fname != "main"+ext {
-					return false, true
-				}
-				break
-			}
-		}
-		return true, true
+		return c.AutoLambdas, c.IsProj(ext, fname), true
 	}
 	return
 }
@@ -112,7 +117,7 @@ func (c *Context) Import(path string) (*types.Package, error) {
 
 func (c *Context) ParseDir(dir string) (*Package, error) {
 	pkgs, err := parser.ParseDirEx(c.fset, dir, parser.Config{
-		ClassKind: ClassKind,
+		ClassInfo: ClassInfo,
 	})
 	if err != nil {
 		return nil, err
@@ -122,7 +127,7 @@ func (c *Context) ParseDir(dir string) (*Package, error) {
 
 func (c *Context) ParseFSDir(fs parser.FileSystem, dir string) (*Package, error) {
 	pkgs, err := parser.ParseFSDir(c.fset, fs, dir, parser.Config{
-		ClassKind: ClassKind,
+		ClassInfo: ClassInfo,
 	})
 	if err != nil {
 		return nil, err
