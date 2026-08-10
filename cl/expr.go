@@ -1281,7 +1281,7 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 			if e != nil {
 				return e
 			}
-			if err = compileLambdaExpr(ctx, expr, sig); err != nil {
+			if err = compileArrowExpr(ctx, expr, sig); err != nil {
 				return
 			}
 		case *ast.LambdaExpr:
@@ -1294,7 +1294,7 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 			if e != nil {
 				return e
 			}
-			if err = compileLambdaExpr2(ctx, expr, sig); err != nil {
+			if err = compileLambdaExpr(ctx, expr, sig); err != nil {
 				return
 			}
 		case *ast.CompositeLit:
@@ -1389,11 +1389,11 @@ retry:
 func compileLambda(ctx *blockCtx, lambda ast.Expr, sig *types.Signature) {
 	switch expr := lambda.(type) {
 	case *ast.LambdaExpr:
-		if err := compileLambdaExpr2(ctx, expr, sig); err != nil {
+		if err := compileLambdaExpr(ctx, expr, sig); err != nil {
 			panic(err)
 		}
 	case *ast.ArrowExpr:
-		if err := compileLambdaExpr(ctx, expr, sig); err != nil {
+		if err := compileArrowExpr(ctx, expr, sig); err != nil {
 			panic(err)
 		}
 	}
@@ -1440,7 +1440,7 @@ func makeLambdaResults(pkg *gogen.Package, out *types.Tuple) *types.Tuple {
 	return types.NewTuple(results...)
 }
 
-func compileLambdaExpr(ctx *blockCtx, v *ast.ArrowExpr, sig *types.Signature) error {
+func compileArrowExpr(ctx *blockCtx, v *ast.ArrowExpr, sig *types.Signature) error {
 	pkg := ctx.pkg
 	params, err := makeLambdaParams(ctx, v.Pos(), v.End(), v.Lhs, sig.Params())
 	if err != nil {
@@ -1461,7 +1461,7 @@ func compileLambdaExpr(ctx *blockCtx, v *ast.ArrowExpr, sig *types.Signature) er
 	return nil
 }
 
-func compileLambdaExpr2(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature) error {
+func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature) error {
 	pkg := ctx.pkg
 	params, err := makeLambdaParams(ctx, v.Pos(), v.End(), v.Lhs, sig.Params())
 	if err != nil {
@@ -1637,7 +1637,7 @@ func compileDomainTextLit(ctx *blockCtx, v *ast.DomainTextLit) {
 					if expr, ok := r.RetProc.(*ast.LambdaExpr); ok {
 						cb.Val(r.Name.Name)
 						sig := sigRetFunc(ctx.pkg, r.IsList())
-						compileLambdaExpr2(ctx, lambdaRetFunc(expr), sig)
+						compileLambdaExpr(ctx, lambdaRetFunc(expr), sig)
 						n += 2
 					}
 				}

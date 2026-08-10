@@ -2881,7 +2881,7 @@ func main() {
 `)
 }
 
-func TestLambdaExpr(t *testing.T) {
+func TestArrowExpr(t *testing.T) {
 	gopClTest(t, `
 func Map(c []float64, t func(float64) float64) {
 	// ...
@@ -2986,7 +2986,7 @@ func main() {
 `)
 }
 
-func TestLambdaExpr2(t *testing.T) {
+func TestLambdaExpr(t *testing.T) {
 	gopClTest(t, `
 func Do(func()) {
 	// ...

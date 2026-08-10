@@ -130,7 +130,7 @@ func TestCompileLambdaExpr(t *testing.T) {
 	}
 	lhs := []*ast.Ident{ast.NewIdent("x")}
 	sig := types.NewSignatureType(nil, nil, nil, nil, nil, false)
-	e := compileLambdaExpr(ctx, &ast.ArrowExpr{Lhs: lhs}, sig)
+	e := compileArrowExpr(ctx, &ast.ArrowExpr{Lhs: lhs}, sig)
 	if ce := e.(*gogen.CodeError); ce.Msg != `too many arguments in lambda expression
 	have (x)
 	want ()` {

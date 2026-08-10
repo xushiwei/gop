@@ -164,8 +164,8 @@ type Recorder interface {
 	//     *ast.RangeStmt
 	//     *ast.ForPhraseStmt
 	//     *ast.ForPhrase
+	//     *ast.ArrowExpr
 	//     *ast.LambdaExpr
-	//     *ast.LambdaExpr2
 	//
 	Scope(ast.Node, *types.Scope)
 }
