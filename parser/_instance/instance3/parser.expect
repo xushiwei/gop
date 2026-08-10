@@ -238,7 +238,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: foo
               Args:
-                ast.LambdaExpr:
+                ast.ArrowExpr:
                   Rhs:
                     ast.CompositeLit:
                       Type:
@@ -260,7 +260,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: foo
               Args:
-                ast.LambdaExpr2:
+                ast.LambdaExpr:
                   Body:
                     ast.BlockStmt:
                       List:
@@ -401,7 +401,7 @@ ast.FuncDecl:
                     ast.Ident:
                       Name: int
               Args:
-                ast.LambdaExpr:
+                ast.ArrowExpr:
                   Rhs:
                     ast.CompositeLit:
                       Type:
@@ -430,7 +430,7 @@ ast.FuncDecl:
                     ast.Ident:
                       Name: string
               Args:
-                ast.LambdaExpr2:
+                ast.LambdaExpr:
                   Body:
                     ast.BlockStmt:
                       List:
