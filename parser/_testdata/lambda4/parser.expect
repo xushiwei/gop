@@ -67,7 +67,7 @@ ast.FuncDecl:
                         ast.Ident:
                           Name: Plot
                       Value:
-                        ast.LambdaExpr:
+                        ast.ArrowExpr:
                           Lhs:
                             ast.Ident:
                               Name: x
@@ -104,7 +104,7 @@ ast.FuncDecl:
                         ast.Ident:
                           Name: Plot
                       Value:
-                        ast.LambdaExpr2:
+                        ast.LambdaExpr:
                           Lhs:
                             ast.Ident:
                               Name: x

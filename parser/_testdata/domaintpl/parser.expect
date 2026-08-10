@@ -47,7 +47,7 @@ stmts = *(stmt ";") => {
                             ast.Ident:
                               Name: stmts
                           RetProc:
-                            ast.LambdaExpr2:
+                            ast.LambdaExpr:
                               Body:
                                 ast.BlockStmt:
                                   List:
@@ -101,7 +101,7 @@ stmts = *(stmt ";") => {
                                       Kind: STRING
                                       Value: ";"
                           RetProc:
-                            ast.LambdaExpr2:
+                            ast.LambdaExpr:
                               Body:
                                 ast.BlockStmt:
                                   List:

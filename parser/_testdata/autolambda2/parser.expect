@@ -20,7 +20,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: forEver
               Args:
-                ast.LambdaExpr2:
+                ast.LambdaExpr:
                   Body:
                     ast.BlockStmt:
                       List:

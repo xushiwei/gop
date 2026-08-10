@@ -19,7 +19,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: foo
               Args:
-                ast.LambdaExpr2:
+                ast.LambdaExpr:
                   Body:
                     ast.BlockStmt:
                       List:
@@ -40,7 +40,7 @@ ast.FuncDecl:
                 ast.Ident:
                   Name: foo
               Args:
-                ast.LambdaExpr2:
+                ast.LambdaExpr:
                   Lhs:
                     ast.Ident:
                       Name: x

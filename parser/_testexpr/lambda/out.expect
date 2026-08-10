@@ -1,4 +1,4 @@
-ast.LambdaExpr2:
+ast.LambdaExpr:
   Body:
     ast.BlockStmt:
       List:
