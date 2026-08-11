@@ -161,7 +161,7 @@ func (w *walker) walk(path string, d fs.DirEntry, err error) error {
 		case ".go", ".xgo", ".gox", ".gop", ".gsh":
 			ok = true
 		default:
-			_, _, ok = fn(path)
+			_, _, ok = fn(filepath.Base(path))
 		}
 		if ok && (!mvgo || ext == ".go") {
 			procCnt++

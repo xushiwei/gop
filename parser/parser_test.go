@@ -370,7 +370,7 @@ func TestParseFieldDecl(t *testing.T) {
 func TestDefaultClassInfo(t *testing.T) {
 	_, isProj, ok := DefaultClassInfo("foo.gsh")
 	if !isProj || !ok {
-		t.Fatal("defaultClassInfo for foo.gsh failed")
+		t.Fatal("DefaultClassInfo for foo.gsh failed")
 	}
 }
 

@@ -84,7 +84,7 @@ func ParseDir(fset *token.FileSet, path string, filter func(fs.FileInfo) bool, m
 	return ParseFSDir(fset, fsx.Local, path, Config{Filter: filter, Mode: mode})
 }
 
-// ClassInfo represents the function type for getting class information of a XGo source file.
+// ClassInfoFunc represents the function type for getting class information of a XGo source file.
 // See https://github.com/goplus/xgo/issues/2828 to learn about auto lambda.
 type ClassInfoFunc = func(fname string) (autoLambdas map[string]int, isProj, ok bool)
 
