@@ -17,8 +17,8 @@
 package repoList
 
 import (
-	"github.com/goplus/xgo/dql/html"
 	"github.com/goplus/xgo/dql/fetcher"
+	"github.com/goplus/xgo/dql/html"
 )
 
 // Repo is the information of a repository.

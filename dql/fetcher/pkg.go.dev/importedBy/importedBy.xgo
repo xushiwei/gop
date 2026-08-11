@@ -18,8 +18,8 @@ package importedBy
 
 import (
 	"github.com/goplus/xgo/dql"
-	"github.com/goplus/xgo/dql/html"
 	"github.com/goplus/xgo/dql/fetcher"
+	"github.com/goplus/xgo/dql/html"
 )
 
 type Result struct {
