@@ -1,5 +1,5 @@
 type Direction const (
-	None  = uint8(iota)
+	None = uint8(iota)
 	North
 	South
 	East
@@ -14,4 +14,5 @@ type Priority const (
 
 var d Direction = None
 var p Priority = None
+
 echo d, p

@@ -21,6 +21,6 @@ func (foo).* = (
 
 var a, b foo
 
-println a * 10
-println a * b
-println 10 * a
+println a*10
+println a*b
+println 10*a

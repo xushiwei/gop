@@ -1,10 +1,11 @@
 import (
-    "time"
+	"time"
 
-    "github.com/goplus/xgo/cl/internal/unit"
+	"github.com/goplus/xgo/cl/internal/unit"
 )
 
 func Wait(time.Duration) {}
+
 func Step(unit.Distance) {}
 
 wait 0.5µs

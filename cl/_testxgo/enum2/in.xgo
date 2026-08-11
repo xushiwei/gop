@@ -9,7 +9,7 @@ type Weekday const (
 )
 
 type Permission const (
-	Read    = 1 << iota
+	Read = 1 << iota
 	Write
 	Execute
 )

@@ -22,10 +22,11 @@ type MonthlyRepeatOnDay const (
 )
 
 type Third const (
-    None = ""
+	None = ""
 )
 
 var r RepeatMode = None
 var m MonthlyRepeatOnDay = None
 var t Third = None
+
 echo r, m, t

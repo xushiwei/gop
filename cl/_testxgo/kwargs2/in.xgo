@@ -1,6 +1,6 @@
 type Options struct {
-    Loop  bool
-    async bool
+	Loop  bool
+	async bool
 }
 
 func PlaySound(path string, options Options) {

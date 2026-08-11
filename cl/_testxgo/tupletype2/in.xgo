@@ -1,4 +1,5 @@
 type Point (x, y int)
+
 type Int (x int)
 
 pt := Point{x: 2, y: 3}

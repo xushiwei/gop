@@ -1,7 +1,7 @@
 import "github.com/goplus/xgo/cl/internal/typeargs"
 
 type MyApp struct {
-    typeargs.App
+	typeargs.App
 }
 
 type Start struct {

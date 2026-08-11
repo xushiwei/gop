@@ -27,4 +27,4 @@ func (a foo) != (b foo) bool {
 var a, b foo
 var c = a - b
 var d = -a // TODO(xsw): -a have no return value!
-var e = a!=b
+var e = a != b
