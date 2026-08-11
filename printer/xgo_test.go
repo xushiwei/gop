@@ -127,11 +127,7 @@ func testFrom(t *testing.T, fpath, sel string, mode int) {
 
 	if (mode & excludeFormatSource) == 0 {
 		t.Run("format.Source "+fpath, func(t *testing.T) {
-			var class bool
-			if filepath.Ext(fpath) == ".gox" {
-				class = true
-			}
-			res, err := format.Source(src, class, fpath)
+			res, err := format.Source(src, nil, fpath)
 			if err != nil {
 				t.Fatal("Source failed:", err)
 			}

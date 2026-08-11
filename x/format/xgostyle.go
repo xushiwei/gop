@@ -30,18 +30,17 @@ import (
 
 // -----------------------------------------------------------------------------
 
-func XGoStyleSource(src []byte, class bool, filename ...string) (ret []byte, err error) {
+func XGoStyleSource(src []byte, classInfo parser.ClassInfoFunc, filename ...string) (ret []byte, err error) {
 	var fname string
 	if filename != nil {
 		fname = filename[0]
 	}
 	fset := token.NewFileSet()
-	mode := parser.ParseComments
-	if class {
-		mode |= parser.ParseXGoClass
-	}
 	var f *ast.File
-	if f, err = parser.ParseFile(fset, fname, src, mode); err == nil {
+	if f, err = parser.ParseEntry(fset, fname, src, parser.Config{
+		ClassInfo: classInfo,
+		Mode:      parser.ParseComments,
+	}); err == nil {
 		XGoStyle(f)
 		var buf bytes.Buffer
 		if err = format.Node(&buf, fset, f); err == nil {
@@ -53,7 +52,7 @@ func XGoStyleSource(src []byte, class bool, filename ...string) (ret []byte, err
 
 // Deprecated: Use XGoStyleSource instead.
 func GopstyleSource(src []byte, filename ...string) (ret []byte, err error) {
-	return XGoStyleSource(src, false, filename...)
+	return XGoStyleSource(src, nil, filename...)
 }
 
 // -----------------------------------------------------------------------------

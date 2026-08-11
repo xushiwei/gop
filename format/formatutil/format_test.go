@@ -134,6 +134,6 @@ func TestRearrangeFuncs(t *testing.T) {
 
 func TestFormat(t *testing.T) {
 	testFromDir(t, "", "./_testdata/format", func(in []byte) ([]byte, error) {
-		return SourceEx(in, false, "")
+		return SourceEx(in, nil, "")
 	})
 }

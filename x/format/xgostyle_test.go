@@ -18,11 +18,13 @@ package format
 
 import (
 	"testing"
+
+	"github.com/goplus/xgo/ast"
 )
 
 func testFormat(t *testing.T, name string, src, expect string) {
 	t.Run(name, func(t *testing.T) {
-		result, err := XGoStyleSource([]byte(src), false, name)
+		result, err := GopstyleSource([]byte(src), name+".xgo")
 		if err != nil {
 			t.Fatal("format.Source failed:", err)
 		}
@@ -34,7 +36,10 @@ func testFormat(t *testing.T, name string, src, expect string) {
 
 func testFormatClass(t *testing.T, name string, src, expect string) {
 	t.Run(name, func(t *testing.T) {
-		result, err := XGoStyleSource([]byte(src), true, name)
+		classInfo := func(fname string) (autoLambdas map[string]int, isProj, ok bool) {
+			return nil, false, true
+		}
+		result, err := XGoStyleSource([]byte(src), classInfo, name)
 		if err != nil {
 			t.Fatal("format.Source failed:", err)
 		}
@@ -91,6 +96,15 @@ func f() {
 `, `func f() {
 }
 `)
+}
+
+// -----------------------------------------------------------------------------
+
+func TestGopstyle(t *testing.T) {
+	file := &ast.File{
+		Name: &ast.Ident{Name: "main"},
+	}
+	Gopstyle(file)
 }
 
 // -----------------------------------------------------------------------------

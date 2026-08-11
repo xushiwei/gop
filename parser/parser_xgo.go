@@ -84,27 +84,31 @@ func ParseDir(fset *token.FileSet, path string, filter func(fs.FileInfo) bool, m
 	return ParseFSDir(fset, fsx.Local, path, Config{Filter: filter, Mode: mode})
 }
 
+// ClassInfoFunc represents the function type for getting class information of a XGo source file.
+// See https://github.com/goplus/xgo/issues/2828 to learn about auto lambda.
+type ClassInfoFunc = func(fname string) (autoLambdas map[string]int, isProj, ok bool)
+
+// Config represents the configuration for parsing XGo source files.
 type Config struct {
 	// Deprecated: use ClassInfo instead.
 	ClassKind func(fname string) (isProj, ok bool)
 
-	// See https://github.com/goplus/xgo/issues/2828 to learn about auto lambda.
-	ClassInfo func(fname string) (autoLambdas map[string]int, isProj, ok bool)
+	ClassInfo ClassInfoFunc
 	Filter    func(fs.FileInfo) bool
 	Mode      Mode
 }
 
-func getClassInfo(conf *Config) func(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
+func getClassInfo(conf *Config) ClassInfoFunc {
 	if conf.ClassInfo != nil {
 		return conf.ClassInfo
 	}
 	if classKind := conf.ClassKind; classKind != nil {
-		return func(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
+		return func(fname string) (autoLambdas map[string]int, isProj, ok bool) {
 			isProj, ok = classKind(fname)
 			return
 		}
 	}
-	return defaultClassInfo
+	return DefaultClassInfo
 }
 
 // ParseDirEx calls ParseFSDir by passing a local filesystem.
@@ -223,7 +227,7 @@ func ParseFSEntry(fset *token.FileSet, fs FileSystem, filename string, src any, 
 			isNormalGox = false
 		} else if isNormalGox { // not found XGo class by ext, but is a .gox file
 			isClass = true
-		} else {
+		} else if filename != "" {
 			return nil, ErrUnknownFileKind
 		}
 	}
@@ -256,7 +260,8 @@ func reqPkg(pkgs map[string]*ast.Package, name string) *ast.Package {
 	return pkg
 }
 
-func defaultClassInfo(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
+// DefaultClassInfo implements the default ClassInfoFunc.
+func DefaultClassInfo(fname string) (autoLambdas map[string]int, isProj bool, ok bool) {
 	ext := path.Ext(fname)
 	switch ext {
 	case ".gsh":
