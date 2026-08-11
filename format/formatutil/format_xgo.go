@@ -18,6 +18,7 @@ package formatutil
 
 import (
 	"github.com/goplus/xgo/format"
+	"github.com/goplus/xgo/parser"
 	"github.com/goplus/xgo/scanner"
 	"github.com/goplus/xgo/token"
 )
@@ -184,14 +185,14 @@ func startWith(words []aWord, tok token.Token) bool {
 // is applied to the result (such that it has the same leading and trailing
 // space as src), and the result is indented by the same amount as the first
 // line of src containing code. Imports are not sorted for partial source files.
-func SourceEx(src []byte, class bool, filename ...string) (formatted []byte, err error) {
-	formatted, err = format.Source(src, class, filename...)
+func SourceEx(src []byte, classInfo parser.ClassInfoFunc, filename ...string) (formatted []byte, err error) {
+	formatted, err = format.Source(src, classInfo, filename...)
 	if err == nil {
 		return
 	}
 	src, err = RearrangeFuncs(src, filename...)
 	if err == nil {
-		formatted, err = format.Source(src, class, filename...)
+		formatted, err = format.Source(src, classInfo, filename...)
 	}
 	return
 }

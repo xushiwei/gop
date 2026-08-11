@@ -28,6 +28,7 @@ import (
 
 	"github.com/goplus/xgo/cmd/internal/base"
 	"github.com/goplus/xgo/format"
+	xgoparser "github.com/goplus/xgo/parser"
 	"github.com/goplus/xgo/tool"
 
 	goformat "go/format"
@@ -62,14 +63,14 @@ var (
 	rootDir    = ""
 )
 
-func gopfmt(path string, class, smart, mvgo bool) (err error) {
+func gopfmt(path string, classInfo xgoparser.ClassInfoFunc, smart, mvgo bool) (err error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
 		return
 	}
 	var target []byte
 	if smart {
-		target, err = xformat.XGoStyleSource(src, class, path)
+		target, err = xformat.XGoStyleSource(src, classInfo, path)
 	} else {
 		if !mvgo && filepath.Ext(path) == ".go" {
 			fset := token.NewFileSet()
@@ -84,7 +85,7 @@ func gopfmt(path string, class, smart, mvgo bool) (err error) {
 			}
 			target = buf.Bytes()
 		} else {
-			target, err = format.Source(src, class, path)
+			target, err = format.Source(src, classInfo, path)
 		}
 	}
 	if err != nil {
@@ -128,11 +129,11 @@ func writeFileWithBackup(path string, target []byte) (err error) {
 }
 
 type walker struct {
-	dirMap map[string]func(ext string) (ok, class bool)
+	dirMap map[string]xgoparser.ClassInfoFunc
 }
 
 func newWalker() *walker {
-	return &walker{dirMap: make(map[string]func(ext string) (ok, class bool))}
+	return &walker{dirMap: make(map[string]xgoparser.ClassInfoFunc)}
 }
 
 func (w *walker) walk(path string, d fs.DirEntry, err error) error {
@@ -147,40 +148,27 @@ func (w *walker) walk(path string, d fs.DirEntry, err error) error {
 		fn, ok := w.dirMap[dir]
 		if !ok {
 			if mod, err := tool.LoadMod(path); err == nil {
-				fn = func(ext string) (ok bool, class bool) {
-					switch ext {
-					case ".go", ".xgo", ".gop":
-						ok = true
-					case ".gox":
-						ok, class = true, true
-					default:
-						class = mod.IsClass(ext)
-						ok = class
-					}
-					return
-				}
+				fn = mod.ClassInfo
 			} else {
-				fn = func(ext string) (ok bool, class bool) {
-					switch ext {
-					case ".go", ".xgo", ".gop":
-						ok = true
-					case ".gox":
-						ok, class = true, true
-					}
-					return
-				}
+				fn = xgoparser.DefaultClassInfo
 			}
 			w.dirMap[dir] = fn
 		}
-		ext := filepath.Ext(path)
 		smart := *flagSmart
 		mvgo := smart && *flagMoveGo
-		if ok, class := fn(ext); ok && (!mvgo || ext == ".go") {
+		ext := filepath.Ext(path)
+		switch ext {
+		case ".go", ".xgo", ".gox", ".gop", ".gsh":
+			ok = true
+		default:
+			_, _, ok = fn(path)
+		}
+		if ok && (!mvgo || ext == ".go") {
 			procCnt++
 			if *flagNotExec {
 				fmt.Println("xgo fmt", path)
 			} else {
-				err = gopfmt(path, class, smart && (mvgo || ext != ".go"), mvgo)
+				err = gopfmt(path, fn, smart && (mvgo || ext != ".go"), mvgo)
 				if err != nil {
 					report(err)
 				}
