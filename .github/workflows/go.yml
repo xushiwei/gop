@@ -76,5 +76,6 @@ jobs:
           ./all.bash
           if [ -n "$(xgo fmt -t ./... | grep -v _nofmt | grep -v _testexpr)" ]; then
             echo "Some XGo files are not properly formatted. Please run 'xgo fmt ./...'"
+            xgo fmt -t ./... | grep -v _nofmt | grep -v _testexpr
             exit 1
           fi
