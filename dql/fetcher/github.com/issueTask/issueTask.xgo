@@ -17,8 +17,8 @@
 package issueTask
 
 import (
-	"github.com/goplus/xgo/dql/html"
 	"github.com/goplus/xgo/dql/fetcher"
+	"github.com/goplus/xgo/dql/html"
 )
 
 // Task represents a GitHub issue task item.

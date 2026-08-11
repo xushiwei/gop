@@ -17,8 +17,8 @@
 package fndoc
 
 import (
-	"github.com/goplus/xgo/dql/html"
 	"github.com/goplus/xgo/dql/fetcher"
+	"github.com/goplus/xgo/dql/html"
 )
 
 // -----------------------------------------------------------------------------

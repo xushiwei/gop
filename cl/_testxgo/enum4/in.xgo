@@ -9,5 +9,6 @@ type Weekday const (
 )
 
 var v Weekday
+
 v = Friday
 echo v

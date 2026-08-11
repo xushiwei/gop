@@ -7,7 +7,7 @@ func run(task int, cfg Config?) {
 	if cfg.maxRetries == 0 {
 		cfg.maxRetries = 3
 	}
-    echo "timeout:", cfg.timeout, "maxRetries:", cfg.maxRetries, "debug:", cfg.debug
+	echo "timeout:", cfg.timeout, "maxRetries:", cfg.maxRetries, "debug:", cfg.debug
 	echo "task:", task
 }
 

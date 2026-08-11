@@ -1,7 +1,7 @@
 import (
-    "os"
+	"os"
 
-    "github.com/xushiwei/markdown"
+	"github.com/xushiwei/markdown"
 )
 
 md := markdown`

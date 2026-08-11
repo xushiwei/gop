@@ -38,18 +38,18 @@ import (
 	xformat "github.com/goplus/xgo/x/format"
 )
 
-// Cmd - gop fmt
+// Cmd - xgo fmt
 var Cmd = &base.Command{
-	UsageLine: "gop fmt [flags] path ...",
+	UsageLine: "xgo fmt [flags] path ...",
 	Short:     "Format XGo packages",
 }
 
 var (
 	flag        = &Cmd.Flag
-	flagTest    = flag.Bool("t", false, "test if XGo files are formatted or not.")
-	flagNotExec = flag.Bool("n", false, "prints commands that would be executed.")
-	flagMoveGo  = flag.Bool("mvgo", false, "move .go files to .xgo files (only available in `--smart` mode).")
-	flagSmart   = flag.Bool("smart", false, "convert Go code style into XGo style.")
+	flagTest    = flag.Bool("t", false, "test if XGo files are formatted or not")
+	flagNotExec = flag.Bool("n", false, "prints commands that would be executed")
+	flagMoveGo  = flag.Bool("mvgo", false, "move .go files to .xgo files (only available in `--smart` mode)")
+	flagSmart   = flag.Bool("smart", false, "convert Go code style into XGo style")
 )
 
 func init() {
@@ -63,7 +63,7 @@ var (
 	rootDir    = ""
 )
 
-func gopfmt(path string, classInfo xgoparser.ClassInfoFunc, smart, mvgo bool) (err error) {
+func xgofmt(path string, classInfo xgoparser.ClassInfoFunc, smart, mvgo bool) (err error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
 		return
@@ -158,17 +158,19 @@ func (w *walker) walk(path string, d fs.DirEntry, err error) error {
 		mvgo := smart && *flagMoveGo
 		ext := filepath.Ext(path)
 		switch ext {
-		case ".go", ".xgo", ".gox", ".gop", ".gsh":
+		case ".go":
+			ok = mvgo
+		case ".xgo", ".gox", ".gop", ".gsh":
 			ok = true
 		default:
 			_, _, ok = fn(filepath.Base(path))
 		}
-		if ok && (!mvgo || ext == ".go") {
+		if ok {
 			procCnt++
 			if *flagNotExec {
 				fmt.Println("xgo fmt", path)
 			} else {
-				err = gopfmt(path, fn, smart && (mvgo || ext != ".go"), mvgo)
+				err = xgofmt(path, fn, smart && (mvgo || ext != ".go"), mvgo)
 				if err != nil {
 					report(err)
 				}

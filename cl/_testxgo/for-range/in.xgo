@@ -11,13 +11,13 @@ func weekdays(yield func(k string, v int) bool) {
 }
 
 for range foo {
-    echo "Hi"
+	echo "Hi"
 }
 
 for v := range bar {
-    echo v
+	echo v
 }
 
 for k, v := range weekdays {
-    echo k, v
+	echo k, v
 }

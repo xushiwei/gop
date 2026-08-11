@@ -1,5 +1,5 @@
 var (
-    score = 100
+	score = 100
 )
 
 echo score

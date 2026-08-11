@@ -2,5 +2,5 @@ import "github.com/goplus/xgo/cl/internal/dql"
 
 doc := dql.new
 for user in doc.users {
-    echo user
+	echo user
 }

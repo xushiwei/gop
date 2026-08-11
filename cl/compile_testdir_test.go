@@ -34,6 +34,10 @@ func TestTestxgo(t *testing.T) {
 	cltest.FromDir(t, "", "./_testxgo")
 }
 
+func TestNofmt(t *testing.T) {
+	cltest.FromDir(t, "", "./_nofmt")
+}
+
 func TestTestgo(t *testing.T) {
 	cltest.FromDir(t, "", "./_testgo")
 }

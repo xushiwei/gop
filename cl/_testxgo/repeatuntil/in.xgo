@@ -1,12 +1,13 @@
 func RepeatUntil(__xgo_autoclosure_cond func() bool, body func()) {
-    for !__xgo_autoclosure_cond() {
-        body()
-    }
+	for !__xgo_autoclosure_cond() {
+		body()
+	}
 }
 
 x := 0
 repeatUntil x >= 3, => {
-    echo x
-    x++
+	echo x
+	x++
 }
-repeatUntil false, => {}
+repeatUntil false, => {
+}

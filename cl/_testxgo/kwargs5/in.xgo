@@ -1,31 +1,32 @@
 type CompletionParams interface {
-    MaxOutputTokens(int64) CompletionParams
-    Temperature(float64) CompletionParams
+	MaxOutputTokens(int64) CompletionParams
+	Temperature(float64) CompletionParams
 }
 
 type completionParamsImpl struct {
-    maxTokens   int64
-    temperature float64
+	maxTokens   int64
+	temperature float64
 }
 
 func (p *completionParamsImpl) MaxOutputTokens(n int64) CompletionParams {
-    p.maxTokens = n
-    return p
+	p.maxTokens = n
+	return p
 }
 
 func (p *completionParamsImpl) Temperature(t float64) CompletionParams {
-    p.temperature = t
-    return p
+	p.temperature = t
+	return p
 }
 
 type Client struct{}
 
 func (c *Client) CompletionParams() CompletionParams {
-    return &completionParamsImpl{}
+	return &completionParamsImpl{}
 }
 
 func (c *Client) Complete(prompt string, params CompletionParams) {
 }
 
 var c Client
+
 c.Complete "hello", maxOutputTokens = 1024, temperature = 0.7

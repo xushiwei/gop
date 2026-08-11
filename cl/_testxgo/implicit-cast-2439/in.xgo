@@ -2,18 +2,19 @@ type BasePtr struct {
 }
 
 type Base struct {
-    *BasePtr
+	*BasePtr
 }
 
 func Walk(p *Base) {}
+
 func WalkPtr(p *BasePtr) {}
 
 type T struct {
-    Base
+	Base
 }
 
 func f() *T {
-    return {}
+	return {}
 }
 
 walk new(T)

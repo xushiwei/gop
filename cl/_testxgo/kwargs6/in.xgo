@@ -1,32 +1,32 @@
 type CompletionParams interface {
-    Set(name string, val any) CompletionParams
-    MaxOutputTokens(int64) CompletionParams
-    System(prompt ...string) CompletionParams
+	Set(name string, val any) CompletionParams
+	MaxOutputTokens(int64) CompletionParams
+	System(prompt ...string) CompletionParams
 }
 
 type completionParamsImpl struct {
-    data map[string]any
+	data map[string]any
 }
 
 func (p *completionParamsImpl) Set(name string, val any) CompletionParams {
-    p.data[name] = val
-    return p
+	p.data[name] = val
+	return p
 }
 
 func (p *completionParamsImpl) MaxOutputTokens(n int64) CompletionParams {
-    p.data["maxOutputTokens"] = n
-    return p
+	p.data["maxOutputTokens"] = n
+	return p
 }
 
 func (p *completionParamsImpl) System(prompt ...string) CompletionParams {
-    p.data["system"] = prompt
-    return p
+	p.data["system"] = prompt
+	return p
 }
 
 type Client struct{}
 
 func (c *Client) CompletionParams() CompletionParams {
-    return &completionParamsImpl{data: make(map[string]any)}
+	return &completionParamsImpl{data: make(map[string]any)}
 }
 
 func (c *Client) Complete(prompt string, params CompletionParams) {
