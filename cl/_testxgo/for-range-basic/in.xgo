@@ -1,0 +1,19 @@
+a := [1, 3.4, 5]
+for _, x := range a {
+	println(x)
+}
+for i, x := range a {
+	println(i, x)
+}
+
+var i int
+var x float64
+for _, x = range a {
+	println(i, x)
+}
+for i, x = range a {
+	println(i, x)
+}
+for range a {
+	println("Hi")
+}
