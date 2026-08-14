@@ -1,0 +1,9 @@
+type foo struct {
+}
+
+func (p *foo) Gop_Enum(c func(key int, val string)) {
+}
+
+for k, v := range new(foo) {
+	println(k, v)
+}

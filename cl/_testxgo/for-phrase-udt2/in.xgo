@@ -1,0 +1,17 @@
+type fooIter struct {
+}
+
+func (p fooIter) Next() (key string, val int, ok bool) {
+	return
+}
+
+type foo struct {
+}
+
+func (p *foo) Gop_Enum() fooIter {
+	return fooIter{}
+}
+
+for k, v in new(foo) {
+	println(k, v)
+}

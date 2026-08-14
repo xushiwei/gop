@@ -1,0 +1,7 @@
+type foo struct {
+}
+
+func (p *foo) Gop_Enum(c func(val string)) {
+}
+
+println([v for v in new(foo)])
