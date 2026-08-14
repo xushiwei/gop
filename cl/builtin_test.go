@@ -41,6 +41,25 @@ func getGoxConf() *gogen.Config {
 	return &gogen.Config{Fset: fset, Importer: imp}
 }
 
+func TestAutoLambdaCategory(t *testing.T) {
+	if autoLambdaCategory(types.NewVar(0, nil, "__xgo_cond_body", types.Typ[types.Int])) != gogen.AutoLambdaCond {
+		t.Fatal("autoLambdaCategory __xgo_cond_body: expected AutoLambdaCond")
+	}
+	if autoLambdaCategory(types.NewVar(0, nil, "__xgo_loop_body", types.Typ[types.Int])) != gogen.AutoLambdaLoop {
+		t.Fatal("autoLambdaCategory __xgo_loop_body: expected AutoLambdaLoop")
+	}
+	defer func() {
+		e := recover()
+		if e == nil {
+			t.Fatal("autoLambdaCategory __xgo_body: no panic?")
+		}
+		if e.(string) != "invalid autolambda parameter `__xgo_body`, should start with __xgo_loop_ or __xgo_cond_" {
+			t.Fatal("autoLambdaCategory __xgo_body: unexpected panic -", e)
+		}
+	}()
+	autoLambdaCategory(types.NewVar(0, nil, "__xgo_body", types.Typ[types.Int]))
+}
+
 func TestEmbeddedFieldCast(t *testing.T) {
 	var o = new(types.Struct)
 	embeddedFieldCast(o, nil, nil, visitedT{o: none{}})

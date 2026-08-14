@@ -1211,6 +1211,22 @@ func fnCall(ctx *blockCtx, lhs int, v *ast.CallExpr, flags gogen.InstrFlags, ext
 	return ctx.cb.CallWithEx(len(v.Args)+extra, lhs, flags, v)
 }
 
+func autoLambdaCategory(varg *types.Var) gogen.AutoLambdaCategory {
+	if varg != nil {
+		name := varg.Name()
+		if strings.HasPrefix(name, "__xgo_loop_") {
+			return gogen.AutoLambdaLoop
+		}
+		if strings.HasPrefix(name, "__xgo_cond_") {
+			return gogen.AutoLambdaCond
+		}
+		if strings.HasPrefix(name, "__xgo_") {
+			panic("invalid autolambda parameter `" + name + "`, should start with __xgo_loop_ or __xgo_cond_")
+		}
+	}
+	return gogen.AutoLambdaNormal
+}
+
 func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *ast.CallExpr, ellipsis bool, flags gogen.InstrFlags) (err error) {
 	defer func() {
 		r := recover()
@@ -1294,7 +1310,7 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 			if e != nil {
 				return e
 			}
-			if err = compileLambdaExpr(ctx, expr, sig, gogen.AutoLambdaNormal); err != nil {
+			if err = compileLambdaExpr(ctx, expr, sig, autoLambdaCategory(varg)); err != nil {
 				return
 			}
 		case *ast.CompositeLit:
