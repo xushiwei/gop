@@ -1294,7 +1294,7 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 			if e != nil {
 				return e
 			}
-			if err = compileLambdaExpr(ctx, expr, sig); err != nil {
+			if err = compileLambdaExpr(ctx, expr, sig, gogen.AutoLambdaNormal); err != nil {
 				return
 			}
 		case *ast.CompositeLit:
@@ -1389,7 +1389,7 @@ retry:
 func compileLambda(ctx *blockCtx, lambda ast.Expr, sig *types.Signature) {
 	switch expr := lambda.(type) {
 	case *ast.LambdaExpr:
-		if err := compileLambdaExpr(ctx, expr, sig); err != nil {
+		if err := compileLambdaExpr(ctx, expr, sig, gogen.AutoLambdaNormal); err != nil {
 			panic(err)
 		}
 	case *ast.ArrowExpr:
@@ -1461,7 +1461,7 @@ func compileArrowExpr(ctx *blockCtx, v *ast.ArrowExpr, sig *types.Signature) err
 	return nil
 }
 
-func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature) error {
+func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature, cate gogen.AutoLambdaCategory) error {
 	pkg := ctx.pkg
 	params, err := makeLambdaParams(ctx, v.Pos(), v.End(), v.Lhs, sig.Params())
 	if err != nil {
@@ -1469,7 +1469,8 @@ func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature) e
 	}
 	results := makeLambdaResults(pkg, sig.Results())
 	comments, once := ctx.cb.BackupComments()
-	fn := ctx.cb.NewClosure(params, results, false)
+	sigClosure := types.NewSignatureType(nil, nil, nil, params, results, false)
+	fn := ctx.cb.NewClosureWith(sigClosure, cate)
 	cb := fn.BodyStart(ctx.pkg, v.Body)
 	if len(v.Lhs) > 0 {
 		defNames(ctx, v.Lhs, cb.Scope())
@@ -1637,7 +1638,7 @@ func compileDomainTextLit(ctx *blockCtx, v *ast.DomainTextLit) {
 					if expr, ok := r.RetProc.(*ast.LambdaExpr); ok {
 						cb.Val(r.Name.Name)
 						sig := sigRetFunc(ctx.pkg, r.IsList())
-						compileLambdaExpr(ctx, lambdaRetFunc(expr), sig)
+						compileLambdaExpr(ctx, lambdaRetFunc(expr), sig, gogen.AutoLambdaNormal)
 						n += 2
 					}
 				}
