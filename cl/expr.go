@@ -1211,6 +1211,22 @@ func fnCall(ctx *blockCtx, lhs int, v *ast.CallExpr, flags gogen.InstrFlags, ext
 	return ctx.cb.CallWithEx(len(v.Args)+extra, lhs, flags, v)
 }
 
+func autoLambdaCategory(varg *types.Var) gogen.AutoLambdaCategory {
+	if varg != nil {
+		name := varg.Name()
+		if strings.HasPrefix(name, "__xgo_loop_") {
+			return gogen.AutoLambdaLoop
+		}
+		if strings.HasPrefix(name, "__xgo_cond_") {
+			return gogen.AutoLambdaCond
+		}
+		if strings.HasPrefix(name, "__xgo_") {
+			panic("invalid autolambda parameter `" + name + "`, should start with __xgo_loop_ or __xgo_cond_")
+		}
+	}
+	return gogen.AutoLambdaNormal
+}
+
 func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *ast.CallExpr, ellipsis bool, flags gogen.InstrFlags) (err error) {
 	defer func() {
 		r := recover()
@@ -1294,7 +1310,7 @@ func compileCallArgs(ctx *blockCtx, lhs int, pfn *gogen.Element, fn *fnType, v *
 			if e != nil {
 				return e
 			}
-			if err = compileLambdaExpr(ctx, expr, sig); err != nil {
+			if err = compileLambdaExpr(ctx, expr, sig, autoLambdaCategory(varg)); err != nil {
 				return
 			}
 		case *ast.CompositeLit:
@@ -1389,7 +1405,7 @@ retry:
 func compileLambda(ctx *blockCtx, lambda ast.Expr, sig *types.Signature) {
 	switch expr := lambda.(type) {
 	case *ast.LambdaExpr:
-		if err := compileLambdaExpr(ctx, expr, sig); err != nil {
+		if err := compileLambdaExpr(ctx, expr, sig, gogen.AutoLambdaNormal); err != nil {
 			panic(err)
 		}
 	case *ast.ArrowExpr:
@@ -1461,7 +1477,7 @@ func compileArrowExpr(ctx *blockCtx, v *ast.ArrowExpr, sig *types.Signature) err
 	return nil
 }
 
-func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature) error {
+func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature, cate gogen.AutoLambdaCategory) error {
 	pkg := ctx.pkg
 	params, err := makeLambdaParams(ctx, v.Pos(), v.End(), v.Lhs, sig.Params())
 	if err != nil {
@@ -1469,14 +1485,15 @@ func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature) e
 	}
 	results := makeLambdaResults(pkg, sig.Results())
 	comments, once := ctx.cb.BackupComments()
-	fn := ctx.cb.NewClosure(params, results, false)
+	sigClosure := types.NewSignatureType(nil, nil, nil, params, results, false)
+	fn := ctx.cb.NewClosureWith(sigClosure, cate)
 	cb := fn.BodyStart(ctx.pkg, v.Body)
 	if len(v.Lhs) > 0 {
 		defNames(ctx, v.Lhs, cb.Scope())
 	}
 	compileStmts(ctx, v.Body.List)
 	if rec := ctx.recorder(); rec != nil {
-		rec.Scope(v, ctx.cb.Scope())
+		rec.Scope(v, cb.Scope())
 	}
 	cb.End(v)
 	ctx.cb.SetComments(comments, once)
@@ -1637,7 +1654,7 @@ func compileDomainTextLit(ctx *blockCtx, v *ast.DomainTextLit) {
 					if expr, ok := r.RetProc.(*ast.LambdaExpr); ok {
 						cb.Val(r.Name.Name)
 						sig := sigRetFunc(ctx.pkg, r.IsList())
-						compileLambdaExpr(ctx, lambdaRetFunc(expr), sig)
+						compileLambdaExpr(ctx, lambdaRetFunc(expr), sig, gogen.AutoLambdaNormal)
 						n += 2
 					}
 				}
