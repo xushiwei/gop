@@ -445,6 +445,21 @@ func foo() byte {
 `)
 }
 
+func TestErrRangeStmtUDT(t *testing.T) {
+	codeErrorTest(t,
+		`bar.xgo:8:7: can't use return/continue/break/goto in for range of udt.XGo_Enum(callback)`, `
+type foo struct {
+}
+
+func (p *foo) XGo_Enum(c func(val string)) {
+}
+
+for v in new(foo) {
+	return
+}
+`)
+}
+
 func TestErrForRange(t *testing.T) {
 	codeErrorTest(t,
 		`bar.xgo:4:8: cannot assign type string to a (type int) in range`, `
