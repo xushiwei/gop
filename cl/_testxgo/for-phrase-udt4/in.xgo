@@ -24,6 +24,6 @@ func (p *foo) Gop_Enum() *fooIter {
 	return &fooIter{data: p}
 }
 
-for k, v <- newFoo() {
+for k, v in newFoo() {
 	println(k, v)
 }
