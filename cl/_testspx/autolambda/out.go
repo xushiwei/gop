@@ -30,8 +30,9 @@ func (this *Kai) Main() {
 		}, func() {
 			fmt.Println("x = 11")
 		})
-		spx.ForEver(func() {
+		spx.ForEver(func() int {
 			this.Gop_Exec("step", 1)
+			return 0
 		})
 	})
 }

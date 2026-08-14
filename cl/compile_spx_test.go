@@ -137,6 +137,19 @@ println "hi"
 `, "Game.t5gmx", "Kai.t5spx")
 }
 
+func TestErrAutoLambda(t *testing.T) {
+	gopSpxErrorTestEx(t, `Kai.spx:3:2: can't use return/continue/break/goto in auto lambda`, ``, `
+forEver {
+	return
+}
+`, "", "Kai.spx")
+	gopSpxErrorTestEx(t, `Kai.spx:2:9: can't use return/continue/break/goto in auto lambda`, ``, `
+forEver {
+	break
+}
+`, "", "Kai.spx")
+}
+
 func TestSpxBasic(t *testing.T) {
 	gopSpxTest(t, `
 import (

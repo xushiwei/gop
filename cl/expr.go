@@ -1493,7 +1493,7 @@ func compileLambdaExpr(ctx *blockCtx, v *ast.LambdaExpr, sig *types.Signature, c
 	}
 	compileStmts(ctx, v.Body.List)
 	if rec := ctx.recorder(); rec != nil {
-		rec.Scope(v, ctx.cb.Scope())
+		rec.Scope(v, cb.Scope())
 	}
 	cb.End(v)
 	ctx.cb.SetComments(comments, once)

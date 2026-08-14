@@ -74,9 +74,11 @@ func Sched() {
 func SchedNow() {
 }
 
-func ForEver(body func()) {
+func ForEver(__xgo_loop_body func() int) int {
 	for {
-		body()
+		if ret := __xgo_loop_body(); ret != 0 {
+			return ret
+		}
 	}
 }
 
