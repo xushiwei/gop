@@ -678,7 +678,7 @@ XGo has only one looping keyword: `for`, with several forms.
 
 This is the most common form. You can use it with a slice, map, numeric range or custom iterators.
 
-For information about creating a custom iterators, see [Custom iterators](#custom-iterators).
+For information about creating a custom iterators, see [The for Statement](for.md) for details.
 
 ##### Slice `for`
 
@@ -731,7 +731,7 @@ for val in m {
 <h5 align="right"><a href="#table-of-contents">⬆ back to toc</a></h5>
 
 
-##### Range `for`
+##### RangeExpr `for`
 
 You can use `range expression` (`start:end:step`) in for loop.
 
@@ -1129,66 +1129,7 @@ type Start struct {
 
 ### Custom iterators
 
-#### For range of UDT
-
-```go
-type Foo struct {
-}
-
-// Gop_Enum(proc func(val ValType)) or:
-// Gop_Enum(proc func(key KeyType, val ValType))
-func (p *Foo) Gop_Enum(proc func(key int, val string)) {
-    // ...
-}
-
-foo := &Foo{}
-for k, v := range foo {
-    echo k, v
-}
-
-for k, v in foo {
-    echo k, v
-}
-
-echo {v: k for k, v in foo}
-```
-
-**Note: you can't use break/continue or return statements in for range of udt.Gop_Enum(callback).**
-
-<h5 align="right"><a href="#table-of-contents">⬆ back to toc</a></h5>
-
-
-#### For range of UDT2
-
-```go
-type FooIter struct {
-}
-
-// (Iterator) Next() (val ValType, ok bool) or:
-// (Iterator) Next() (key KeyType, val ValType, ok bool)
-func (p *FooIter) Next() (key int, val string, ok bool) {
-    // ...
-}
-
-type Foo struct {
-}
-
-// Gop_Enum() Iterator
-func (p *Foo) Gop_Enum() *FooIter {
-    // ...
-}
-
-foo := &Foo{}
-for k, v := range foo {
-    echo k, v
-}
-
-for k, v in foo {
-    echo k, v
-}
-
-echo {v: k for k, v in foo}
-```
+See [The for Statement](for.md) for details.
 
 <h5 align="right"><a href="#table-of-contents">⬆ back to toc</a></h5>
 
