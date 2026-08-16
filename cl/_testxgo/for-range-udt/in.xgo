@@ -1,7 +1,8 @@
 type foo struct {
 }
 
-func (p *foo) Gop_Enum(c func(key int, val string)) {
+func (p *foo) Gop_Enum() func(yield func(key int, val string) bool) {
+	return nil
 }
 
 for k, v := range new(foo) {

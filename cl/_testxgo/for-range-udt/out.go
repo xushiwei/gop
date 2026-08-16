@@ -5,10 +5,11 @@ import "fmt"
 type foo struct {
 }
 
-func (p *foo) Gop_Enum(c func(key int, val string)) {
+func (p *foo) Gop_Enum() func(yield func(key int, val string) bool) {
+	return nil
 }
 func main() {
-	new(foo).Gop_Enum(func(k int, v string) {
+	for k, v := range new(foo).Gop_Enum() {
 		fmt.Println(k, v)
-	})
+	}
 }
