@@ -1127,7 +1127,47 @@ type Start struct {
 }
 ```
 
+<h5 align="right"><a href="#table-of-contents">⬆ back to toc</a></h5>
+
 ### Custom iterators
+
+```go
+type Tree struct {
+    // ...
+}
+
+func (t *Tree) XGo_Enum() func(func(int) bool) {
+    return func(yield func(int) bool) {
+        // in-order traversal, calling yield(v) for each element
+    }
+}
+
+tree := new(Tree)
+...
+for v in tree {
+    echo v
+}
+```
+
+A two-value `XGo_Enum` follows the same two-value rules as above:
+
+```go
+type OrderedMap struct {
+    // ...
+}
+
+func (m *OrderedMap) XGo_Enum() func(func(string, int) bool) {
+    return func(yield func(string, int) bool) {
+        // iterate in insertion order
+    }
+}
+
+om := new(OrderedMap)
+...
+for k, v in om {
+    echo k, v
+}
+```
 
 See [The for Statement](for.md) for details.
 
