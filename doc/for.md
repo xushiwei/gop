@@ -2,7 +2,7 @@
 
 XGo has a single looping keyword, `for`, with four forms: bare `for`, condition `for`, C-style `for`, and `for..in`. The first three are unchanged from Go. `for..in` is XGo-native syntax for iterating over a value, with an optional `if` filter clause. It is the recommended way to iterate in XGo, covering the cases Go handles with `for range`.
 
-## 1. Overview
+## Overview
 
 Iterating "for each value" is the most common looping intent, and `for..in` is built around that intent directly: `for v in expr` binds `v` to each value in turn. When both a key/index and a value are needed, `for k, v in expr` binds both, in that order.
 
@@ -10,7 +10,7 @@ Iterating "for each value" is the most common looping intent, and `for..in` is b
 
 XGo's class and object model benefits from a way for user-defined types to participate in `for..in` iteration without implementing `sort.Interface`-style multi-method protocols. The `XGo_Enum()` convention gives any type a single, minimal hook into `for..in`.
 
-## 2. Bare `for`
+## Bare `for`
 
 ```go
 for {
@@ -20,7 +20,7 @@ for {
 
 The condition is omitted, producing an infinite loop. Use `break` or `return` to end it.
 
-## 3. Condition `for`
+## Condition `for`
 
 ```go
 sum := 0
@@ -34,7 +34,7 @@ echo sum // 5050
 
 This form is equivalent to a `while` loop in other languages: the loop runs as long as the boolean condition evaluates to `true`. There are no parentheses around the condition, and the braces are always required.
 
-## 4. C-style `for`
+## C-style `for`
 
 ```go
 for i := 0; i < 10; i += 2 {
@@ -51,9 +51,9 @@ for i := 0; i < 10; i += 2 {
 
 The traditional three-clause form: init statement, condition, post statement, separated by `;`. It is safer than the condition `for` form because the counter update is part of the loop header and cannot be forgotten.
 
-## 5. `for..in`
+## `for..in`
 
-### 5.1 Syntax
+### Syntax
 
 `for..in` takes the form `for <identifiers> in <expr> { ... }`, with an optional `if <condition>` inserted between the iterated expression and the opening brace. Two identifier forms are supported:
 
@@ -66,13 +66,13 @@ for k, v in expr { ... }  // binds the key/index and the value
 
 `for..in` with zero identifiers (`for in expr`) is not valid; use `for expr {}`-style side-effecting constructs elsewhere if iteration is needed purely for side effects without touching the yielded values.
 
-### 5.2 Binding rule
+### Binding rule
 
 When a single variable is bound, `for v in expr` binds the **value**. When two variables are bound, `for k, v in expr` binds the key/index first and the value second.
 
 The rule is uniform across every iterable category: for any category that produces two components (a key/index and a value), `for v in expr` binds the value and discards the key/index; `for k, v in expr` binds both, key/index first. For categories that produce a single component, that component is treated as the value and bound directly by `for v in expr`; `for k, v in expr` is a compile error since there is no second component to bind.
 
-### 5.3 Optional `if` filter
+### Optional `if` filter
 
 `for..in` accepts an optional trailing `if` clause. When present, the loop body executes only for elements where the condition evaluates to `true`; elements that fail the condition are skipped without entering the body. The filter expression may reference the identifiers bound by the `in` clause.
 
@@ -95,7 +95,7 @@ for num in :10 if num%3 == 0 {
 }
 ```
 
-## 6. Iterable Expressions
+## Iterable Expressions
 
 `expr` in a `for..in` clause may be one of:
 
@@ -112,7 +112,7 @@ For case 5, the compiler rewrites the `in` clause to iterate over `expr.XGo_Enum
 
 Resolution order: the compiler first checks whether `expr`'s type is a built-in iterable kind (int, array, slice, string, map, chan, func) or a range expression. If not, it looks for an `XGo_Enum() F` method on the type or its pointer type. If neither applies, the expression is not iterable and compilation fails.
 
-## 7. Semantics by Category
+## Semantics by Category
 
 The table below defines what `for v in expr` and `for k, v in expr` bind for each category.
 
@@ -129,9 +129,9 @@ The table below defines what `for v in expr` and `for k, v in expr` bind for eac
 | `func(yield func(K, V) bool)`     | key, value                    | the value (key discarded)     | key, value                        |
 | `T` with `XGo_Enum() F`           | per `F` above                | per `F` above                  | per `F` above                     |
 
-## 8. Examples by Category
+## Examples by Category
 
-### 8.1 Array, slice, string, map, chan
+### Array, slice, string, map, chan
 
 ```go
 for v in [1, 2, 3] {
@@ -162,9 +162,9 @@ for v in ch {
 
 `for k, v in ch` is a compile error: a channel produces only one value.
 
-### 8.2 int
+### int
 
-`for i in 5` yields the successive indices `0, 1, 2, 3, 4`. It is equivalent to `for i in :5` (see §8.3).
+`for i in 5` yields the successive indices `0, 1, 2, 3, 4`. It is equivalent to `for i in :5` (see below).
 
 ```go
 for i in :5 {
@@ -175,7 +175,7 @@ for i in :5 {
 
 `for k, v in 5` is a compile error: `int` produces only one value.
 
-### 8.3 Range expression
+### Range expression
 
 A range expression (`start:end:step`) is XGo-native. It produces successive values from `start` (default `0`) up to but excluding `end`, advancing by `step` (default `1`, must not be `0`; a negative `step` counts down).
 
@@ -199,7 +199,7 @@ for v in 10:0:-1 {
 
 `for k, v in 1:10:2` is a compile error: a range expression produces only one value.
 
-### 8.4 func (iterator functions)
+### func (iterator functions)
 
 `for..in` binds the value component and discards the key, if any, when only one variable is given.
 
@@ -219,7 +219,7 @@ for v in Seq2 {         // key discarded; only the value is bound
 
 A zero-value iterator (`func(yield func() bool)`) has nothing to bind.
 
-### 8.5 Object with `XGo_Enum()`
+### Object with `XGo_Enum()`
 
 Any type with an `XGo_Enum() F` method is iterable as if the expression were `expr.XGo_Enum()` itself — `for..in` applies the rules for whichever `func` signature `F` is.
 
@@ -241,7 +241,7 @@ for v in tree {
 }
 ```
 
-A two-value `XGo_Enum` follows the same two-value rules as §8.4:
+A two-value `XGo_Enum` follows the same two-value rules as above:
 
 ```go
 type OrderedMap struct {
@@ -261,7 +261,7 @@ for k, v in om {
 }
 ```
 
-### 8.6 `for..in` with `if`
+### `for..in` with `if`
 
 ```go
 numbers := [1, 3, 5, 7, 11, 13, 17]
@@ -283,7 +283,7 @@ for i, name in names if i > 0 {
 }
 ```
 
-## 9. Restrictions
+## Restrictions
 
 - `for k, v in expr` requires `expr`'s iteration protocol to produce two components (array, slice, string, map, `func(yield func(K, V) bool)`, or an `XGo_Enum()` returning one of these). Applying it to `int`, `chan`, a range expression, or `func(yield func(V) bool)` is a compile error.
 - `for v in expr` requires at least one produced component. Applying it to `func(yield func() bool)` (or an `XGo_Enum()` returning that type) is a compile error.
