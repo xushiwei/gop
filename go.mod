@@ -8,13 +8,13 @@ require (
 	github.com/goplus/cobra v1.10.7 //xgo:class
 	github.com/goplus/gogen v1.23.6-0.20260816085451-b240c8b2c5b1
 	github.com/goplus/lib v0.3.1
-	github.com/goplus/mod v0.21.2
+	github.com/goplus/mod v0.22.0
 	github.com/qiniu/x v1.18.3
 	golang.org/x/net v0.57.0
 )
 
 require (
-	golang.org/x/mod v0.20.0 // indirect
+	golang.org/x/mod v0.40.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 )
 
