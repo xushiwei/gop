@@ -22,6 +22,7 @@ import (
 	"go/scanner"
 	"os"
 	"runtime"
+	"strconv"
 	"testing"
 
 	"github.com/goplus/xgo/cl"
@@ -240,6 +241,11 @@ func mixedErrorTest(t *testing.T, msg, gocode, gopcode string) {
 	mixedErrorTestEx(t, "main", msg, gocode, gopcode)
 }
 
+func isLeastGo(minor int64) bool {
+	ver, err := strconv.ParseInt(runtime.Version()[4:6], 10, 0)
+	return err == nil && ver >= minor
+}
+
 func mixedErrorTestEx(t *testing.T, pkgname, msg, gocode, gopcode string) {
 	fs := memfs.TwoFiles("/foo", "a.go", gocode, "b.xgo", gopcode)
 	pkgs, err := parser.ParseFSDir(cltest.Conf.Fset, fs, "/foo", parser.Config{})
@@ -328,7 +334,11 @@ _ = Loader[int]
 }
 
 func TestTypeParamsErrArgumentsParameters1(t *testing.T) {
-	mixedErrorTest(t, `b.xgo:2:7: got 1 type arguments but Data[T1, T2 interface{}] has 2 type parameters`, `
+	msg := `b.xgo:2:7: got 1 type arguments but Data[T1, T2 interface{}] has 2 type parameters`
+	if isLeastGo(27) {
+		msg = `b.xgo:2:7: cannot instantiate Data[T1, T2 interface{}]: got 1 type arguments but have 2 type parameters`
+	}
+	mixedErrorTest(t, msg, `
 package main
 
 type Data[T1 any, T2 any] struct {
@@ -341,7 +351,11 @@ var v Data[int]
 }
 
 func TestTypeParamsErrArgumentsParameters2(t *testing.T) {
-	mixedErrorTest(t, `b.xgo:2:7: got 3 type arguments but Data[T1, T2 interface{}] has 2 type parameters`, `
+	msg := `b.xgo:2:7: got 3 type arguments but Data[T1, T2 interface{}] has 2 type parameters`
+	if isLeastGo(27) {
+		msg = `b.xgo:2:7: cannot instantiate Data[T1, T2 interface{}]: got 3 type arguments but have 2 type parameters`
+	}
+	mixedErrorTest(t, msg, `
 package main
 
 type Data[T1 any, T2 any] struct {
@@ -354,7 +368,11 @@ var v Data[int,int,int]
 }
 
 func TestTypeParamsErrArgumentsParameters3(t *testing.T) {
-	mixedErrorTest(t, `b.xgo:2:1: got 3 type arguments but func[T1, T2 interface{}](t1 T1, t2 T2) has 2 type parameters`, `
+	msg := `b.xgo:2:1: got 3 type arguments but func[T1, T2 interface{}](t1 T1, t2 T2) has 2 type parameters`
+	if isLeastGo(27) {
+		msg = `b.xgo:2:1: cannot instantiate func[T1, T2 interface{}](t1 T1, t2 T2): got 3 type arguments but have 2 type parameters`
+	}
+	mixedErrorTest(t, msg, `
 package main
 
 func Test[T1 any, T2 any](t1 T1, t2 T2) {
