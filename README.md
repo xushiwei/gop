@@ -13,13 +13,14 @@
 <!--
 [![VSCode](https://img.shields.io/badge/vscode-XGo-teal.svg)](https://github.com/gopcode/vscode-goplus)
 [![Discord](https://img.shields.io/discord/983646982100897802?label=Discord&logo=discord&logoColor=white)](https://discord.gg/mYjWCJDcAr)
+[![Discord](https://img.shields.io/badge/Discord-online-success.svg?logo=discord&logoColor=white)](https://discord.com/invite/mYjWCJDcAr)
 [![Interpreter](https://img.shields.io/badge/interpreter-iXGo-seagreen.svg)](https://github.com/goplus/ixgo)
 -->
 
 [![Build Status](https://github.com/goplus/xgo/actions/workflows/go.yml/badge.svg)](https://github.com/goplus/xgo/actions/workflows/go.yml)
 [![Coverage Status](https://codecov.io/gh/goplus/xgo/branch/main/graph/badge.svg)](https://codecov.io/gh/goplus/xgo)
 [![GitHub release](https://img.shields.io/github/v/tag/goplus/xgo.svg?label=release)](https://github.com/goplus/xgo/releases)
-[![Discord](https://img.shields.io/badge/Discord-online-success.svg?logo=discord&logoColor=white)](https://discord.com/invite/mYjWCJDcAr)
+[![GoDoc](https://pkg.go.dev/badge/github.com/goplus/xgo.svg)](https://pkg.go.dev/github.com/goplus/xgo)
 
 </div>
 
